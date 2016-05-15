@@ -18,7 +18,7 @@ As the name sais, the Game_Controller controls the game; it manages SDL, objects
 It is meant as an interface between the object and game handling file (currently main.cpp) and the game fysics.
 
 #About me
-My name is Jens Coenders, 14 years old.
+I am Jens Coenders, 14 years old.
 I live in the Netherlands and I'm currently in the 4th grade VWO of secondary school.
 I'm very interested in programming, primarily C and C++.
 I have been programming since primary school.

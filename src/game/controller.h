@@ -21,22 +21,24 @@ class Game_Controller
 		void destroySDL();
 
 		// Game flow
-		void startGameLoop();
-		void stopGameLoop();
+		void gameLoop();
 
 		// Objects
 		void addObject();		// TODO: Finish function declaration
 		void removeObject();	// TODO: Finish function declaration
 
 		// Instance
+		Game_Controller();
 		~Game_Controller();
-		static Game_Controller* Create();
 	private:
 		// SDL
 		bool m_SDLInitialized;
 		SDL_Window* m_window;
 		SDL_Renderer* m_windowRenderer;
 
-		// Instance
-		Game_Controller();
+		// Game flow
+		// TODO: Game flow variables
+
+		// Objects
+		// TODO: Objects variables
 };

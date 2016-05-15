@@ -6,7 +6,7 @@ using namespace std;
 
 Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
 {
-	Game_ErrorMsg result = {GAME_SUCCESS, ""};
+	Game_ErrorMsg result = { GAME_SUCCESS, "" };
 
 	if (m_SDLInitialized)
 	{
@@ -32,9 +32,13 @@ Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
 		return result;
 	}
 
-	// Setup window and renderer
-	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 576, SDL_WINDOW_RESIZABLE);
-	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	// Setup window
+	flags = SDL_WINDOW_RESIZABLE;
+	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 576, flags);
+
+	// Setup renderer
+	flags = SDL_RENDERER_ACCELERATED;
+	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
 
 	m_window = window;
 	m_windowRenderer = windowRenderer;
@@ -51,6 +55,15 @@ void Game_Controller::destroySDL()
 	// Quit SDL and SDL image
 	SDL_Quit();
 	IMG_Quit();
+
+	m_window = NULL;
+	m_windowRenderer = NULL;
+	m_SDLInitialized = false;
+}
+
+void Game_Controller::gameLoop()
+{
+
 }
 
 Game_Controller::Game_Controller()
@@ -62,11 +75,10 @@ Game_Controller::Game_Controller()
 
 Game_Controller::~Game_Controller()
 {
-	// TODO: Create Game_Controller destructor
-}
+	if (m_SDLInitialized)
+	{
+		destroySDL();
+	}
 
-Game_Controller* Game_Controller::Create()
-{
-	Game_Controller* newInstance = new Game_Controller();
-	return newInstance;
+	// TODO: Complete Game_Controller destructor
 }

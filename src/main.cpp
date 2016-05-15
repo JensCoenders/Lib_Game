@@ -5,9 +5,9 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	Game_Controller* controller = Game_Controller::Create();
+	Game_Controller* controller = new Game_Controller();
 
-	// TODO: Finish game controller setup
+	// Initialize SDL
 	cout << "Initializing SDL... ";
 	Game_ErrorMsg result = controller->initializeSDL("Jens Game V2.0");
 	switch (result.errorCode)
@@ -35,9 +35,10 @@ int main(int argc, char** argv)
 			break;
 	}
 
-	cin.get();
+	// Run game loop
+	controller->gameLoop();
 
-	// TODO: Finish game controller destruction
+	// Cleanup
 	controller->destroySDL();
 	delete controller;
 
