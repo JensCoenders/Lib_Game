@@ -17,6 +17,9 @@ So if you are planning on using another IDE for this project, you'll have to set
 As the name sais, the Game_Controller controls the game; it manages SDL, objects, game flow, etc.
 It is meant as an interface between the object and game handling file (currently main.cpp) and the game fysics.
 
+Beneath a schematic drawing of the project: <br />
+![game scheme](https://raw.githubusercontent.com/jenscoenders/game/master/assets/game_scheme_img.png)
+
 #About me
 I am Jens Coenders, 14 years old.
 I live in the Netherlands and I'm currently in the 4th grade VWO of secondary school.
