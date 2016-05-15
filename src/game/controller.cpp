@@ -123,6 +123,13 @@ void Game_Controller::gameLoop()
 		}
 
 		// Redraw all objects
+		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
+		{
+			for (int j = 0; j < m_layers[i].m_objectCount; j++)
+			{
+				// TODO: Create SDL_Surface and SDL_Renderer and provide it to object to allow it to render itself
+			}
+		}
 	}
 }
 
