@@ -1,8 +1,41 @@
 #include <iostream>
 #include <SDL_image.h>
+
 #include "controller.h"
 
 using namespace std;
+
+game_objectnode::game_objectnode()
+{
+	m_prevNode = NULL;
+	m_nextNode = NULL;
+	m_object = NULL;
+}
+
+game_objectnode::~game_objectnode()
+{
+	if (m_prevNode != NULL)
+	{
+		delete m_prevNode;
+	}
+
+	if (m_nextNode != NULL)
+	{
+		delete m_nextNode;
+	}
+}
+
+game_layer::game_layer()
+{
+	m_objectCount = 0;
+	m_objectNode = NULL;
+}
+
+game_layer::~game_layer()
+{
+	// Deleting the first object node will destroy the whole linked list
+	delete m_objectNode;
+}
 
 Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
 {
@@ -48,6 +81,8 @@ Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
 
 void Game_Controller::destroySDL()
 {
+	m_running = false;
+
 	// Destroy renderer and window
 	SDL_DestroyRenderer(m_windowRenderer);
 	SDL_DestroyWindow(m_window);
@@ -63,14 +98,47 @@ void Game_Controller::destroySDL()
 
 void Game_Controller::gameLoop()
 {
+	while (m_running)
+	{
+		// Poll events
+		SDL_Event event;
+		while (SDL_PollEvent(&event))
+		{
+			// Select type and call event process function
+			switch (event.type)
+			{
+				case SDL_KEYUP:
+				case SDL_KEYDOWN:
+					processKeyboardEvent(&event);
+					break;
+				case SDL_MOUSEBUTTONUP:
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEMOTION:
+					processMouseEvent(&event);
+					break;
+				case SDL_WINDOWEVENT:
+					processWindowEvent(&event);
+					break;
+			}
+		}
 
+		// Redraw all objects
+	}
 }
 
 Game_Controller::Game_Controller()
 {
+	m_running = true;
 	m_SDLInitialized = false;
 	m_window = NULL;
 	m_windowRenderer = NULL;
+
+	m_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+	m_eventFunctionObjects = new Game_Object*[GAME_EVENT_FUNCTION_AMOUNT];
+	for (int i = 0; i < GAME_EVENT_FUNCTION_AMOUNT; i++)
+	{
+		m_eventFunctionObjects[i] = NULL;
+	}
 }
 
 Game_Controller::~Game_Controller()
@@ -80,5 +148,21 @@ Game_Controller::~Game_Controller()
 		destroySDL();
 	}
 
-	// TODO: Complete Game_Controller destructor
+	delete[] m_layers;
+	delete[] m_eventFunctionObjects;
+}
+
+void Game_Controller::processKeyboardEvent(SDL_Event* event)
+{
+
+}
+
+void Game_Controller::processMouseEvent(SDL_Event* event)
+{
+
+}
+
+void Game_Controller::processWindowEvent(SDL_Event* event)
+{
+
 }
