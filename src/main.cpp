@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 	Game_Controller* controller = new Game_Controller();
 
 	// Initialize SDL
-	cout << "Initializing SDL... ";
+	cout << "[INFO] Initializing SDL... ";
 	Game_ErrorMsg result = controller->initializeSDL("Jens Game V2.0");
 	switch (result.errorCode)
 	{
@@ -18,21 +18,21 @@ int main(int argc, char** argv)
 			break;
 		case GAME_ERR_ALREADY_INIT:
 			cout << "[WARN]" << endl;
-			cout << "SDL has already been initialized!?" << endl;
+			cout << "[INFO] SDL has already been initialized!?" << endl;
 			break;
 		case GAME_CRIT_SDL:
-			cout << "[FAIL]" << endl;
-			cout << "Failed to initialize SDL!" << endl;
-			cout << "Error: " << result.message << endl;
+			cout << "[CRIT]" << endl;
+			cout << "[CRIT] Failed to initialize SDL!" << endl;
+			cout << "[CRIT] Error: " << result.message << endl;
 			return GAME_CRIT_SDL;
 		case GAME_CRIT_SDL_IMG:
-			cout << "[FAIL]" << endl;
-			cout << "Failed to initialize SDL image!" << endl;
-			cout << "Error: " << result.message << endl;
+			cout << "[CRIT]" << endl;
+			cout << "[CRIT] Failed to initialize SDL image!" << endl;
+			cout << "[CRIT] Error: " << result.message << endl;
 			return GAME_CRIT_SDL_IMG;
 		default:
 			cout << "[WARN]" << endl;
-			cout << "Unrecognized return code: " << result.errorCode << endl;
+			cout << "[WARN] Unrecognized return code: " << result.errorCode << endl;
 			break;
 	}
 
@@ -40,8 +40,18 @@ int main(int argc, char** argv)
 	controller->gameLoop();
 
 	// Cleanup
-	controller->destroySDL();
-	delete controller;
+	cout << "[INFO] Cleaning up... ";
+	try
+	{
+		controller->destroySDL();
+		delete controller;
+		cout << "[OK]" << endl;
+	}
+	catch (exception& e)
+	{
+		cout << "[ERR]" << endl;
+		cout << "[ERR] Error while cleaning up: " << e.what() << endl;
+	}
 
 	return GAME_SUCCESS;
 }

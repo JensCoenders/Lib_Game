@@ -161,4 +161,5 @@
 			<resource resourceType="PROJECT" workspacePath="/Game"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
