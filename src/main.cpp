@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "game/controller.h"
+#include "game/controller.hpp"
 
 using namespace std;
 
@@ -10,8 +10,8 @@ int main(int argc, char** argv)
 
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
-	Game_ErrorMsg result = controller->initializeSDL("Jens Game V2.0");
-	switch (result.errorCode)
+	Game_Result result = controller->initializeSDL("Jens Game V2.0");
+	switch (result.returnCode)
 	{
 		case GAME_SUCCESS:
 			cout << "[OK]" << endl;
@@ -32,11 +32,12 @@ int main(int argc, char** argv)
 			return GAME_CRIT_SDL_IMG;
 		default:
 			cout << "[WARN]" << endl;
-			cout << "[WARN] Unrecognized return code: " << result.errorCode << endl;
+			cout << "[WARN] Unrecognized return code: " << result.returnCode << endl;
 			break;
 	}
 
-	// Run game loop
+	// Setup game
+	controller->setProperty(PROPERTY_USE_FPS_COUNTER, true);
 	controller->gameLoop();
 
 	// Cleanup

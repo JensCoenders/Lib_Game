@@ -1,7 +1,6 @@
-#include <iostream>
 #include <SDL_image.h>
 
-#include "controller.h"
+#include "controller.hpp"
 
 using namespace std;
 
@@ -32,74 +31,14 @@ game_layer::~game_layer()
 	delete objectList;	// Deleting the first object node will destroy the whole linked list
 }
 
-Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
-{
-	Game_ErrorMsg result = {GAME_SUCCESS, ""};
-
-	if (m_SDLInitialized)
-	{
-		result.errorCode = GAME_ERR_ALREADY_INIT;
-		return result;
-	}
-
-	// Initialize SDL
-	int flags = SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER;
-	if (SDL_Init(flags) == -1)
-	{
-		result.errorCode = GAME_CRIT_SDL;
-		result.message = SDL_GetError();
-		return result;
-	}
-
-	// Initialize SDL image
-	flags = IMG_INIT_PNG;
-	if ((IMG_Init(flags) & flags) != flags)
-	{
-		result.errorCode = GAME_CRIT_SDL_IMG;
-		result.message = SDL_GetError();
-		return result;
-	}
-
-	// Setup window
-	flags = SDL_WINDOW_RESIZABLE;
-	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 576, flags);
-
-	// Setup renderer
-	flags = SDL_RENDERER_ACCELERATED;
-	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
-
-	m_window = window;
-	m_windowRenderer = windowRenderer;
-	m_SDLInitialized = true;
-	return result;
-}
-
-void Game_Controller::destroySDL()
-{
-	m_running = false;
-
-	// Destroy renderer and window
-	SDL_DestroyRenderer(m_windowRenderer);
-	SDL_DestroyWindow(m_window);
-
-	// Quit SDL and SDL image
-	SDL_Quit();
-	IMG_Quit();
-
-	m_window = NULL;
-	m_windowRenderer = NULL;
-	m_SDLInitialized = false;
-}
-
 void Game_Controller::gameLoop()
 {
-	while (m_running)
+	while (m_properties.running)
 	{
 		// Poll events
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
-			// Select type and call event process function
 			switch (event.type)
 			{
 				case SDL_KEYUP:
@@ -125,33 +64,18 @@ void Game_Controller::gameLoop()
 			currentLayer = &m_layers[i];
 			currentObjectNode = currentLayer->objectList;
 
-			do
+			while (currentObjectNode != NULL)
 			{
 
 				currentObjectNode = currentObjectNode->nextNode;
 			}
-			while (currentObjectNode != NULL);
 		}
 	}
 }
 
-Game_Controller::Game_Controller()
+void Game_Controller::throwPropertyError(string propertyName, string typeName)
 {
-	m_running = true;
-	m_layers = new Game_Layer[GAME_LAYER_AMOUNT];
-
-	m_SDLInitialized = false;
-	m_window = NULL;
-	m_windowRenderer = NULL;
-	m_zoomScale = 0.0;
-}
-
-Game_Controller::~Game_Controller()
-{
-	if (m_SDLInitialized)
-		destroySDL();
-
-	delete[] m_layers;
+	cout << "[ERR] Cannot set property '" << propertyName << "'. Expecting type '" << typeName << "'!" << endl;
 }
 
 void Game_Controller::processKeyboardEvent(SDL_Event* event)
@@ -167,4 +91,84 @@ void Game_Controller::processMouseEvent(SDL_Event* event)
 void Game_Controller::processWindowEvent(SDL_Event* event)
 {
 
+}
+
+Game_Result Game_Controller::initializeSDL(string windowTitle)
+{
+	Game_Result result = {GAME_SUCCESS, ""};
+
+	if (m_SDLInitialized)
+	{
+		result.returnCode = GAME_ERR_ALREADY_INIT;
+		return result;
+	}
+
+	// Initialize SDL
+	int flags = SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER;
+	if (SDL_Init(flags) == -1)
+	{
+		result.returnCode = GAME_CRIT_SDL;
+		result.message = SDL_GetError();
+		return result;
+	}
+
+	// Initialize SDL image
+	flags = IMG_INIT_PNG;
+	if ((IMG_Init(flags) & flags) != flags)
+	{
+		result.returnCode = GAME_CRIT_SDL_IMG;
+		result.message = SDL_GetError();
+		return result;
+	}
+
+	// Setup window
+	flags = SDL_WINDOW_RESIZABLE;
+	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 576, flags);
+
+	// Setup renderer
+	flags = SDL_RENDERER_ACCELERATED;
+	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
+
+	m_window = window;
+	m_windowRenderer = windowRenderer;
+	m_SDLInitialized = true;
+	return result;
+}
+
+void Game_Controller::destroySDL()
+{
+	m_properties.running = false;
+
+	// Destroy renderer and window
+	SDL_DestroyRenderer(m_windowRenderer);
+	SDL_DestroyWindow(m_window);
+
+	// Quit SDL and SDL image
+	SDL_Quit();
+	IMG_Quit();
+
+	m_window = NULL;
+	m_windowRenderer = NULL;
+	m_SDLInitialized = false;
+}
+
+Game_Controller::Game_Controller()
+{
+	m_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+
+	m_SDLInitialized = false;
+	m_window = NULL;
+	m_windowRenderer = NULL;
+
+	m_properties.running = true;
+	m_properties.useFPSCounter = false;
+	m_properties.zoomScale = 0.0;
+}
+
+Game_Controller::~Game_Controller()
+{
+	if (m_SDLInitialized)
+		destroySDL();
+
+	delete[] m_layers;
 }

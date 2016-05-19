@@ -37,11 +37,17 @@ void Game_Object::setWorldSize(Game_Rect size)
 
 SDL_Texture* Game_Object::compileTexture(SDL_Surface* surface, SDL_Renderer* softwareRenderer)
 {
+	// Test rendering
 	SDL_RenderClear(softwareRenderer);
 	SDL_Rect targetRect = {0, 0, 50, 50};
 
 	SDL_RenderDrawRect(softwareRenderer, &targetRect);
 	return SDL_CreateTextureFromSurface(softwareRenderer, surface);
+}
+
+void Game_Object::frameUpdate()
+{
+	// Do nothing...
 }
 
 Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight)

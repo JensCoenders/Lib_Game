@@ -29,7 +29,7 @@ class Game_Object
 		virtual void frameUpdate() = 0;
 
 		Game_Object(int worldX = 0, int worldY = 0, int worldWidth = 0, int worldHeight = 0);
-		virtual ~Game_Object();
+		virtual ~Game_Object() {};
 	private:
 		int m_ID;
 		Game_Point m_worldCoords;
