@@ -7,39 +7,34 @@ using namespace std;
 
 game_objectnode::game_objectnode()
 {
-	m_prevNode = NULL;
-	m_nextNode = NULL;
-	m_object = NULL;
+	prevNode = NULL;
+	nextNode = NULL;
+	object = NULL;
 }
 
 game_objectnode::~game_objectnode()
 {
-	if (m_prevNode != NULL)
-	{
-		delete m_prevNode;
-	}
+	if (prevNode != NULL)
+		delete prevNode;
 
-	if (m_nextNode != NULL)
-	{
-		delete m_nextNode;
-	}
+	if (nextNode != NULL)
+		delete nextNode;
 }
 
 game_layer::game_layer()
 {
-	m_objectCount = 0;
-	m_objectNode = NULL;
+	objectCount = 0;
+	objectList = NULL;
 }
 
 game_layer::~game_layer()
 {
-	// Deleting the first object node will destroy the whole linked list
-	delete m_objectNode;
+	delete objectList;	// Deleting the first object node will destroy the whole linked list
 }
 
 Game_ErrorMsg Game_Controller::initializeSDL(string windowTitle)
 {
-	Game_ErrorMsg result = { GAME_SUCCESS, "" };
+	Game_ErrorMsg result = {GAME_SUCCESS, ""};
 
 	if (m_SDLInitialized)
 	{
@@ -123,12 +118,19 @@ void Game_Controller::gameLoop()
 		}
 
 		// Redraw all objects
+		Game_Layer* currentLayer = NULL;
+		Game_ObjectNode* currentObjectNode = NULL;
 		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
-			for (int j = 0; j < m_layers[i].m_objectCount; j++)
+			currentLayer = &m_layers[i];
+			currentObjectNode = currentLayer->objectList;
+
+			do
 			{
-				// TODO: Create SDL_Surface and SDL_Renderer and provide it to object to allow it to render itself
+
+				currentObjectNode = currentObjectNode->nextNode;
 			}
+			while (currentObjectNode != NULL);
 		}
 	}
 }
@@ -136,27 +138,20 @@ void Game_Controller::gameLoop()
 Game_Controller::Game_Controller()
 {
 	m_running = true;
+	m_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+
 	m_SDLInitialized = false;
 	m_window = NULL;
 	m_windowRenderer = NULL;
-
-	m_layers = new Game_Layer[GAME_LAYER_AMOUNT];
-	m_eventFunctionObjects = new Game_Object*[GAME_EVENT_FUNCTION_AMOUNT];
-	for (int i = 0; i < GAME_EVENT_FUNCTION_AMOUNT; i++)
-	{
-		m_eventFunctionObjects[i] = NULL;
-	}
+	m_zoomScale = 0.0;
 }
 
 Game_Controller::~Game_Controller()
 {
 	if (m_SDLInitialized)
-	{
 		destroySDL();
-	}
 
 	delete[] m_layers;
-	delete[] m_eventFunctionObjects;
 }
 
 void Game_Controller::processKeyboardEvent(SDL_Event* event)

@@ -1,29 +1,37 @@
 #include <string>
 #include <SDL.h>
 
-typedef struct game_bounds
+typedef struct game_point
 {
-	public:
-		int worldX, worldY;
-		int worldWidth, worldHeight;
-
+		int x, y;
 		std::string toString();
-} Game_Bounds;
+
+} Game_Point;
+
+typedef struct game_rect
+{
+		int width, height;
+		std::string toString();
+
+} Game_Rect;
 
 class Game_Object
 {
 	public:
-		// General
 		int getID();
-		void setBounds(Game_Bounds bounds);
+		void setWorldSize(Game_Rect size);
+		void setWorldCoords(Game_Point coords);
 
-		// Texture
-		virtual SDL_Texture* render(SDL_Surface* surface, SDL_Renderer* softwareRenderer);
+		bool m_needsTextureUpdate;
+		SDL_Texture* m_lastRenderedTexture;
+
+		virtual SDL_Texture* compileTexture(SDL_Surface* surface, SDL_Renderer* softwareRenderer) = 0;
+		virtual void frameUpdate() = 0;
 
 		Game_Object(int worldX = 0, int worldY = 0, int worldWidth = 0, int worldHeight = 0);
 		virtual ~Game_Object();
 	private:
-		// General
 		int m_ID;
-		Game_Bounds m_bounds;
+		Game_Point m_worldCoords;
+		Game_Rect m_worldSize;
 };

@@ -5,39 +5,53 @@
 
 using namespace std;
 
-string game_bounds::toString()
+string game_point::toString()
 {
 	ostringstream stringStream;
-	stringStream << "{ (" << worldX << ", " << worldY << "), (" << worldWidth << ", " << worldHeight << ") }";
+	stringStream << "(x, y) = (" << x << ", " << y << ")";
 	return stringStream.str();
 }
 
-void Game_Object::setBounds(Game_Bounds bounds)
+string game_rect::toString()
 {
-	if (bounds.worldX < 0 || bounds.worldY < 0 || bounds.worldWidth < 1 || bounds.worldHeight < 1)
-	{
-		cout << "[WARN] Invalid bounds provided " << bounds.toString() << endl;
-	}
-	else
-	{
-		m_bounds = bounds;
-	}
+	ostringstream stringStream;
+	stringStream << "(width, height) = (" << width << ", " << height << ")";
+	return stringStream.str();
 }
 
-SDL_Texture* Game_Object::render(SDL_Surface* surface, SDL_Renderer* softwareRenderer)
+void Game_Object::setWorldCoords(Game_Point coords)
 {
-	return NULL;
+	if (coords.x >= 0 && coords.y >= 0)
+		m_worldCoords = coords;
+	else
+		cout << "[WARN] Invalid coordinates provided: " << coords.toString() << endl;
+}
+
+void Game_Object::setWorldSize(Game_Rect size)
+{
+	if (size.width > 0 && size.width > 0)
+		m_worldSize = size;
+	else
+		cout << "[WARN] Invalid size provided: " << size.toString() << endl;
+}
+
+SDL_Texture* Game_Object::compileTexture(SDL_Surface* surface, SDL_Renderer* softwareRenderer)
+{
+	SDL_RenderClear(softwareRenderer);
+	SDL_Rect targetRect = {0, 0, 50, 50};
+
+	SDL_RenderDrawRect(softwareRenderer, &targetRect);
+	return SDL_CreateTextureFromSurface(softwareRenderer, surface);
 }
 
 Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight)
 {
-	// ID
 	static int lastID = 0;
 	m_ID = lastID++;
 
-	// Bounds
-	m_bounds.worldX = worldX;
-	m_bounds.worldY = worldY;
-	m_bounds.worldWidth = worldWidth;
-	m_bounds.worldHeight = worldHeight;
+	setWorldCoords({worldX, worldY});
+	setWorldSize({worldWidth, worldHeight});
+
+	m_needsTextureUpdate = false;
+	m_lastRenderedTexture = NULL;
 }
