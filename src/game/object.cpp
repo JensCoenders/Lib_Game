@@ -55,8 +55,8 @@ Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight
 	static int lastID = 0;
 	m_ID = lastID++;
 
-	setWorldCoords({worldX, worldY});
-	setWorldSize({worldWidth, worldHeight});
+	setWorldCoords( {worldX, worldY});
+	setWorldSize( {worldWidth, worldHeight});
 
 	m_needsTextureUpdate = false;
 	m_lastRenderedTexture = NULL;

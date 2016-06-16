@@ -1,6 +1,7 @@
+#include "controller.h"
+
 #include <SDL_image.h>
 
-#include "controller.hpp"
 
 using namespace std;
 
@@ -31,9 +32,10 @@ game_layer::~game_layer()
 	delete objectList;	// Deleting the first object node will destroy the whole linked list
 }
 
+
 void Game_Controller::gameLoop()
 {
-	while (m_properties.running)
+	while (g_pGameProperties.running)
 	{
 		// Poll events
 		SDL_Event event;
@@ -73,9 +75,9 @@ void Game_Controller::gameLoop()
 	}
 }
 
-void Game_Controller::throwPropertyError(string propertyName, string typeName)
+void Game_Controller::startGameLoop()
 {
-	cout << "[ERR] Cannot set property '" << propertyName << "'. Expecting type '" << typeName << "'!" << endl;
+	// TODO: Initialize thread
 }
 
 void Game_Controller::processKeyboardEvent(SDL_Event* event)
@@ -90,7 +92,12 @@ void Game_Controller::processMouseEvent(SDL_Event* event)
 
 void Game_Controller::processWindowEvent(SDL_Event* event)
 {
-
+	switch (event->window.event)
+	{
+		case SDL_WINDOWEVENT_CLOSE:
+			g_pGameProperties.running = false;
+			break;
+	}
 }
 
 Game_Result Game_Controller::initializeSDL(string windowTitle)
@@ -137,7 +144,7 @@ Game_Result Game_Controller::initializeSDL(string windowTitle)
 
 void Game_Controller::destroySDL()
 {
-	m_properties.running = false;
+	g_pGameProperties.running = false;
 
 	// Destroy renderer and window
 	SDL_DestroyRenderer(m_windowRenderer);
@@ -159,10 +166,6 @@ Game_Controller::Game_Controller()
 	m_SDLInitialized = false;
 	m_window = NULL;
 	m_windowRenderer = NULL;
-
-	m_properties.running = true;
-	m_properties.useFPSCounter = false;
-	m_properties.zoomScale = 0.0;
 }
 
 Game_Controller::~Game_Controller()

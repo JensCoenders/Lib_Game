@@ -1,11 +1,14 @@
 #include <iostream>
-
-#include "game/controller.hpp"
+#include "game.h"
 
 using namespace std;
 
 int main(int argc, char** argv)
 {
+	g_pGameProperties.running = true;
+	g_pGameProperties.useFPSCounter = false;
+	g_pGameProperties.zoomScale = 0.0;
+
 	Game_Controller* controller = new Game_Controller();
 
 	// Initialize SDL
@@ -36,9 +39,8 @@ int main(int argc, char** argv)
 			break;
 	}
 
-	// Setup game
-	controller->setProperty(PROPERTY_USE_FPS_COUNTER, true);
-	controller->gameLoop();
+	// Run game
+	game(controller);
 
 	// Cleanup
 	cout << "[INFO] Cleaning up... ";
