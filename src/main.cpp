@@ -5,15 +5,19 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	g_pGameProperties.running = true;
-	g_pGameProperties.useFPSCounter = false;
-	g_pGameProperties.zoomScale = 0.0;
-
-	Game_Controller* controller = new Game_Controller();
+	// Initialize shared memory
+	game_sharedMemory.p_running = false;
+	game_sharedMemory.p_useFPSCounter = false;
+	game_sharedMemory.p_zoomScale = 0.0;
+	game_sharedMemory.r_testValue = 10;
+	game_sharedMemory.r_SDLInitialized = false;
+	game_sharedMemory.r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+	game_sharedMemory.r_window = NULL;
+	game_sharedMemory.r_windowRenderer = NULL;
 
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
-	Game_Result result = controller->initializeSDL("Jens Game V2.0");
+	Game_Result result = game_initializeSDL("Jens Game V2.0");
 	switch (result.returnCode)
 	{
 		case GAME_SUCCESS:
@@ -39,15 +43,14 @@ int main(int argc, char** argv)
 			break;
 	}
 
-	// Run game
-	game(controller);
+	// Call game startup
+	game_run();
 
 	// Cleanup
 	cout << "[INFO] Cleaning up... ";
 	try
 	{
-		controller->destroySDL();
-		delete controller;
+		game_destroySDL();
 		cout << "[OK]" << endl;
 	}
 	catch (exception& e)

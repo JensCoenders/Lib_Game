@@ -1,9 +1,11 @@
+#ifndef GAME_CONTROL_H
+#define GAME_CONTROL_H 1
+
 #include <iostream>
 #include <string>
 #include <SDL.h>
 
 #include "object.h"
-#include "properties.hpp"
 
 #define GAME_SUCCESS 				0
 #define GAME_ERR_ALREADY_INIT		1
@@ -46,30 +48,36 @@ typedef struct game_layer
 
 } Game_Layer;
 
-class Game_Controller
+/* Shared Memory */
+
+typedef struct game_sharedmemory_s
 {
 	public:
-		void startGameLoop();
+		// Properties (p)
+		bool p_running;
+		bool p_useFPSCounter;
+		float p_zoomScale;
 
-		void addObject(Game_Object* object);
-		void removeObject(Game_Object* object);
-		void removeObject(int objectID);
+		// Rendering (r)
+		int r_testValue;
+		bool r_SDLInitialized;
+		Game_Layer* r_layers;
+		SDL_Window* r_window;
+		SDL_Renderer* r_windowRenderer;
 
-		Game_Result initializeSDL(std::string windowTitle);
-		void destroySDL();
+} game_sharedmemory_t;
 
-		Game_Controller();
-		~Game_Controller();
-	private:
-		void processKeyboardEvent(SDL_Event* event);
-		void processMouseEvent(SDL_Event* event);
-		void processWindowEvent(SDL_Event* event);
+extern game_sharedmemory_t game_sharedMemory;
 
-		void gameLoop();
 
-		Game_Layer* m_layers;
+/* Control functions */
 
-		bool m_SDLInitialized;
-		SDL_Window* m_window;
-		SDL_Renderer* m_windowRenderer;
-};
+// SDL
+Game_Result game_initializeSDL(std::string windowTitle);
+void game_destroySDL();
+
+// Rendering
+void game_startMainThread();
+void game_stopMainThread();
+
+#endif

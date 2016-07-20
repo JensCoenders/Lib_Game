@@ -1,3 +1,3 @@
-#include "game/controller.h"
+#include "game/control.h"
 
-void game(Game_Controller* controller);
+void game_run();

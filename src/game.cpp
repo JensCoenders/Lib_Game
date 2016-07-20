@@ -1,8 +1,10 @@
 #include "game.h"
 
-void game(Game_Controller* controller)
+void game_run()
 {
 	// Setup game
-	game_setProperty(PROPERTY_USE_FPS_COUNTER, true);
-	controller->startGameLoop();
+	game_sharedMemory.p_useFPSCounter = true;
+
+	// Run game
+	game_startMainThread();
 }
