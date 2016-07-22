@@ -1,28 +1,33 @@
+#include <time.h>
 #include <SDL_image.h>
 #include "control.h"
+#include "thread.h"
 
 using namespace std;
 
 /* Shared Memory */
 
 bool Game_SharedMemory::p_running = false;
+int Game_SharedMemory::p_targetFPS = 60;
 bool Game_SharedMemory::p_useFPSCounter = false;
 float Game_SharedMemory::p_zoomScale = 0.0;
+
 bool Game_SharedMemory::r_SDLInitialized = false;
 Game_Layer* Game_SharedMemory::r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
 SDL_Window* Game_SharedMemory::r_window = NULL;
 SDL_Renderer* Game_SharedMemory::r_windowRenderer = NULL;
 
+int Game_SharedMemory::m_guiThreadID = -1;
+
 /* Extra control functions */
 
 // Rendering
-void game_mainThread();
+void game_renderThread();
 
 // Events
 void game_processKeyboardEvent(SDL_Event* event);
 void game_processMouseEvent(SDL_Event* event);
 void game_processWindowEvent(SDL_Event* event);
-
 
 game_objectnode::game_objectnode()
 {
@@ -51,10 +56,10 @@ game_layer::~game_layer()
 	delete objectList;	// Deleting the first object node will destroy the whole linked list
 }
 
-
 /* Control functions */
 
 // SDL
+
 Game_Result game_initializeSDL(string windowTitle)
 {
 	Game_Result result = {GAME_SUCCESS, ""};
@@ -113,44 +118,36 @@ void game_destroySDL()
 }
 
 // Rendering
-void game_startMainThread()
+
+void game_startRenderThread()
 {
-	// TODO: Initialize thread
 	Game_SharedMemory::p_running = true;
-	game_mainThread();
+
+	// Start thread
+	Game_SharedMemory::m_guiThreadID = game_startThread(game_renderThread);
+	if (Game_SharedMemory::m_guiThreadID < 0)
+	{
+		cout << "[ERR] Couldn't start main thread! Error code: " << Game_SharedMemory::m_guiThreadID << endl;
+	}
+	else
+	{
+		cout << "[INFO] Started GUI thread with ID " << Game_SharedMemory::m_guiThreadID << endl;
+	}
 }
 
-void game_stopMainThread()
+void game_stopRenderThread()
 {
-	// TODO: Kill main thread
 	Game_SharedMemory::p_running = false;
 }
 
-void game_mainThread()
+void game_renderThread()
 {
+	/* Target FPS = 60 */
+	int frameCount = 0;
+	int startTime = clock();
+	int sleepTime = 10;
 	while (Game_SharedMemory::p_running)
 	{
-		// Poll events
-		SDL_Event event;
-		while (SDL_PollEvent(&event))
-		{
-			switch (event.type)
-			{
-				case SDL_KEYUP:
-				case SDL_KEYDOWN:
-					game_processKeyboardEvent(&event);
-					break;
-				case SDL_MOUSEBUTTONUP:
-				case SDL_MOUSEBUTTONDOWN:
-				case SDL_MOUSEMOTION:
-					game_processMouseEvent(&event);
-					break;
-				case SDL_WINDOWEVENT:
-					game_processWindowEvent(&event);
-					break;
-			}
-		}
-
 		// Redraw all objects
 		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
@@ -162,6 +159,31 @@ void game_mainThread()
 				currentObjectNode = currentObjectNode->nextNode;
 			}
 		}
+		frameCount++;
+
+		// Check if a second has passed
+		int newTime = clock();
+		if (((float)(newTime - startTime) / CLOCKS_PER_SEC) >= 1.0f)
+		{
+			if (frameCount > (Game_SharedMemory::p_targetFPS + 5))
+			{
+				sleepTime += 1;
+			}
+			else if (frameCount < (Game_SharedMemory::p_targetFPS - 5) && sleepTime > 0)
+			{
+				sleepTime -= 1;
+			}
+
+			if (Game_SharedMemory::p_useFPSCounter)
+			{
+				cout << "[INFO] FPS: " << frameCount << endl;
+			}
+
+			startTime = newTime;
+			frameCount = 0;
+		}
+
+		game_sleep(sleepTime);
 	}
 }
 
@@ -180,7 +202,7 @@ void game_processWindowEvent(SDL_Event* event)
 	switch (event->window.event)
 	{
 		case SDL_WINDOWEVENT_CLOSE:
-			game_stopMainThread();
+			game_stopRenderThread();
 			break;
 	}
 }

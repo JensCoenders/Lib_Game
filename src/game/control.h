@@ -15,24 +15,6 @@
 
 using namespace std;
 
-/* Shared Memory */
-
-class Game_SharedMemory
-{
-	public:
-		// Properties (p)
-		static bool p_running;
-		static bool p_useFPSCounter;
-		static float p_zoomScale;
-
-		// Rendering (r)
-		static bool r_SDLInitialized;
-		static Game_Layer* r_layers;
-		static SDL_Window* r_window;
-		static SDL_Renderer* r_windowRenderer;
-
-};
-
 /* Type definitions */
 
 typedef struct game_result
@@ -67,14 +49,41 @@ typedef struct game_layer
 
 } Game_Layer;
 
+/* Shared Memory */
+
+class Game_SharedMemory
+{
+	public:
+		// Properties (p)
+		static bool p_running;
+		static int p_targetFPS;
+		static bool p_useFPSCounter;
+		static float p_zoomScale;
+
+		// Rendering (r)
+		static bool r_SDLInitialized;
+		static Game_Layer* r_layers;
+		static SDL_Window* r_window;
+		static SDL_Renderer* r_windowRenderer;
+
+		// Miscellaneous (m)
+		static int m_guiThreadID;
+
+};
+
 /* Control functions */
 
 // SDL
 Game_Result game_initializeSDL(std::string windowTitle);
 void game_destroySDL();
 
-// Rendering
-void game_startMainThread();
-void game_stopMainThread();
+// GUI
+void game_startRenderThread();
+void game_stopRenderThread();
+
+// Events
+void game_processKeyboardEvent(SDL_Event* event);
+void game_processMouseEvent(SDL_Event* event);
+void game_processWindowEvent(SDL_Event* event);
 
 #endif
