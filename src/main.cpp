@@ -5,16 +5,6 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	// Initialize shared memory
-	game_sharedMemory.p_running = false;
-	game_sharedMemory.p_useFPSCounter = false;
-	game_sharedMemory.p_zoomScale = 0.0;
-	game_sharedMemory.r_testValue = 10;
-	game_sharedMemory.r_SDLInitialized = false;
-	game_sharedMemory.r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
-	game_sharedMemory.r_window = NULL;
-	game_sharedMemory.r_windowRenderer = NULL;
-
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
 	Game_Result result = game_initializeSDL("Jens Game V2.0");

@@ -3,6 +3,16 @@
 
 using namespace std;
 
+/* Shared Memory */
+
+bool Game_SharedMemory::p_running = false;
+bool Game_SharedMemory::p_useFPSCounter = false;
+float Game_SharedMemory::p_zoomScale = 0.0;
+bool Game_SharedMemory::r_SDLInitialized = false;
+Game_Layer* Game_SharedMemory::r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+SDL_Window* Game_SharedMemory::r_window = NULL;
+SDL_Renderer* Game_SharedMemory::r_windowRenderer = NULL;
+
 /* Extra control functions */
 
 // Rendering
@@ -13,8 +23,6 @@ void game_processKeyboardEvent(SDL_Event* event);
 void game_processMouseEvent(SDL_Event* event);
 void game_processWindowEvent(SDL_Event* event);
 
-/* Shared Memory */
-game_sharedmemory_t game_sharedMemory;
 
 game_objectnode::game_objectnode()
 {
@@ -51,7 +59,7 @@ Game_Result game_initializeSDL(string windowTitle)
 {
 	Game_Result result = {GAME_SUCCESS, ""};
 
-	if (game_sharedMemory.r_SDLInitialized)
+	if (Game_SharedMemory::r_SDLInitialized)
 	{
 		result.returnCode = GAME_ERR_ALREADY_INIT;
 		return result;
@@ -83,44 +91,44 @@ Game_Result game_initializeSDL(string windowTitle)
 	flags = SDL_RENDERER_ACCELERATED;
 	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
 
-	game_sharedMemory.r_window = window;
-	game_sharedMemory.r_windowRenderer = windowRenderer;
-	game_sharedMemory.r_SDLInitialized = true;
+	Game_SharedMemory::r_window = window;
+	Game_SharedMemory::r_windowRenderer = windowRenderer;
+	Game_SharedMemory::r_SDLInitialized = true;
 	return result;
 }
 
 void game_destroySDL()
 {
 	// Destroy renderer and window
-	SDL_DestroyRenderer(game_sharedMemory.r_windowRenderer);
-	SDL_DestroyWindow(game_sharedMemory.r_window);
+	SDL_DestroyRenderer(Game_SharedMemory::r_windowRenderer);
+	SDL_DestroyWindow(Game_SharedMemory::r_window);
 
 	// Quit SDL and SDL image
 	SDL_Quit();
 	IMG_Quit();
 
-	game_sharedMemory.r_window = NULL;
-	game_sharedMemory.r_windowRenderer = NULL;
-	game_sharedMemory.r_SDLInitialized = false;
+	Game_SharedMemory::r_window = NULL;
+	Game_SharedMemory::r_windowRenderer = NULL;
+	Game_SharedMemory::r_SDLInitialized = false;
 }
 
 // Rendering
 void game_startMainThread()
 {
 	// TODO: Initialize thread
-	game_sharedMemory.p_running = true;
+	Game_SharedMemory::p_running = true;
 	game_mainThread();
 }
 
 void game_stopMainThread()
 {
 	// TODO: Kill main thread
-	game_sharedMemory.p_running = false;
+	Game_SharedMemory::p_running = false;
 }
 
 void game_mainThread()
 {
-	while (game_sharedMemory.p_running)
+	while (Game_SharedMemory::p_running)
 	{
 		// Poll events
 		SDL_Event event;
@@ -146,7 +154,7 @@ void game_mainThread()
 		// Redraw all objects
 		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
-			Game_Layer* currentLayer = &game_sharedMemory.r_layers[i];
+			Game_Layer* currentLayer = &Game_SharedMemory::r_layers[i];
 			Game_ObjectNode* currentObjectNode = currentLayer->objectList;
 			while (currentObjectNode != NULL)
 			{

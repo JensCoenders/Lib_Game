@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <SDL.h>
-
 #include "object.h"
 
 #define GAME_SUCCESS 				0
@@ -15,6 +14,26 @@
 #define GAME_LAYER_AMOUNT			7
 
 using namespace std;
+
+/* Shared Memory */
+
+class Game_SharedMemory
+{
+	public:
+		// Properties (p)
+		static bool p_running;
+		static bool p_useFPSCounter;
+		static float p_zoomScale;
+
+		// Rendering (r)
+		static bool r_SDLInitialized;
+		static Game_Layer* r_layers;
+		static SDL_Window* r_window;
+		static SDL_Renderer* r_windowRenderer;
+
+};
+
+/* Type definitions */
 
 typedef struct game_result
 {
@@ -47,28 +66,6 @@ typedef struct game_layer
 		~game_layer();
 
 } Game_Layer;
-
-/* Shared Memory */
-
-typedef struct game_sharedmemory_s
-{
-	public:
-		// Properties (p)
-		bool p_running;
-		bool p_useFPSCounter;
-		float p_zoomScale;
-
-		// Rendering (r)
-		int r_testValue;
-		bool r_SDLInitialized;
-		Game_Layer* r_layers;
-		SDL_Window* r_window;
-		SDL_Renderer* r_windowRenderer;
-
-} game_sharedmemory_t;
-
-extern game_sharedmemory_t game_sharedMemory;
-
 
 /* Control functions */
 
