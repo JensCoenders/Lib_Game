@@ -9,15 +9,71 @@ using namespace std;
 
 bool Game_SharedMemory::p_running = false;
 int Game_SharedMemory::p_targetFPS = 60;
-bool Game_SharedMemory::p_useFPSCounter = false;
-float Game_SharedMemory::p_zoomScale = 0.0;
+bool Game_SharedMemory::p_useFPSCounter = true;
+float Game_SharedMemory::p_zoomScale = 1.0f;
 
-bool Game_SharedMemory::r_SDLInitialized = false;
+Game_Point Game_SharedMemory::r_cameraPos = {0, 0};
+Game_Rect Game_SharedMemory::r_cameraBounds = {0, 0};
 Game_Layer* Game_SharedMemory::r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
-SDL_Window* Game_SharedMemory::r_window = NULL;
-SDL_Renderer* Game_SharedMemory::r_windowRenderer = NULL;
+int Game_SharedMemory::r_renderThreadID = -1;
 
-int Game_SharedMemory::m_guiThreadID = -1;
+bool Game_SharedMemory::s_SDLInitialized = false;
+SDL_Renderer* Game_SharedMemory::s_mainRenderer = NULL;
+SDL_Window* Game_SharedMemory::s_window = NULL;
+
+Game_EventObject* Game_SharedMemory::m_keyboardInputObject = NULL;
+
+bool Game_SharedMemory::startRenderingObject(Game_Object* object, unsigned int layerID)
+{
+	if (layerID >= GAME_LAYER_AMOUNT)
+	{
+		cout << "[WARN] Invalid layer ID provided: " << layerID << endl;
+		return false;
+	}
+
+	Game_Layer* layer = &r_layers[layerID];
+	Game_ObjectNode* newObjectNode = new Game_ObjectNode();
+	newObjectNode->object = object;
+	newObjectNode->nextNode = layer->objectList;
+
+	layer->objectList = newObjectNode;
+	layer->objectCount++;
+
+	return true;
+}
+
+bool Game_SharedMemory::stopRenderingObject(Game_Object* object)
+{
+	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
+	{
+		Game_Layer* currentLayer = &r_layers[i];
+		Game_ObjectNode* currentObjectNode = currentLayer->objectList;
+		while (currentObjectNode != NULL)
+		{
+			if (currentObjectNode->object->getID() == object->getID())
+			{
+				if (currentObjectNode->prevNode != NULL)
+				{
+					currentObjectNode->prevNode->nextNode = currentObjectNode->nextNode;
+				}
+
+				if (currentObjectNode->nextNode != NULL)
+				{
+					currentObjectNode->nextNode->prevNode = currentObjectNode->prevNode;
+				}
+
+				currentObjectNode->prevNode = NULL;
+				currentObjectNode->nextNode = NULL;
+				delete currentObjectNode;
+				currentLayer->objectCount--;
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 /* Extra control functions */
 
@@ -58,13 +114,160 @@ game_layer::~game_layer()
 
 /* Control functions */
 
+// Rendering
+void game_startRenderThread()
+{
+	Game_SharedMemory::p_running = true;
+
+	// Start thread
+	Game_SharedMemory::r_renderThreadID = game_startThread(game_renderThread);
+	if (Game_SharedMemory::r_renderThreadID < 0)
+	{
+		cout << "[ERR] Couldn't start render thread! Error code: " << Game_SharedMemory::r_renderThreadID << endl;
+	}
+	else
+	{
+		cout << "[INFO] Started render thread with ID " << Game_SharedMemory::r_renderThreadID << endl;
+	}
+}
+
+void game_joinRenderThread()
+{
+	game_joinThread(Game_SharedMemory::r_renderThreadID);
+}
+
+void game_renderThread()
+{
+	// Setup renderer
+	SDL_Renderer* mainRenderer = Game_SharedMemory::s_mainRenderer;
+	SDL_SetRenderDrawColor(mainRenderer, 255, 0, 0, 0);
+
+	// Rendering loop
+	int frameCount = 0, sleepTime = 10, startTime = clock();
+	while (Game_SharedMemory::p_running)
+	{
+		SDL_RenderClear(mainRenderer);
+
+		// Draw all objects
+		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
+		{
+			Game_Layer* currentLayer = &Game_SharedMemory::r_layers[i];
+			Game_ObjectNode* currentObjectNode = currentLayer->objectList;
+			while (currentObjectNode != NULL)
+			{
+				Game_Object* currentObject = currentObjectNode->object;
+				Game_Rect realBounds;
+				realBounds.width = currentObject->m_worldSize.width * Game_SharedMemory::p_zoomScale;
+				realBounds.height = currentObject->m_worldSize.height * Game_SharedMemory::p_zoomScale;
+
+				// Frame-update object
+				if (currentObject->m_frameUpdateFunc != NULL)
+				{
+					currentObject->m_frameUpdateFunc(currentObject);
+				}
+
+				// Re-render object if necessary
+				if (currentObject->m_compileTextureFunc != NULL)
+				{
+					if (currentObject->m_needsTextureUpdate)
+					{
+						if (currentObject->m_lastRenderedTexture != NULL)
+						{
+							SDL_DestroyTexture(currentObject->m_lastRenderedTexture);
+							currentObject->m_lastRenderedTexture = NULL;
+						}
+
+						SDL_Surface* surface = SDL_CreateRGBSurface(0, realBounds.width, realBounds.height, 32, 0, 0, 0, 0);
+						if (surface == NULL)
+						{
+							cout << "[WARN] Couldn't create surface for object rendering: " << SDL_GetError() << endl;
+						}
+						else
+						{
+							SDL_Renderer* softwareRenderer = SDL_CreateSoftwareRenderer(surface);
+							if (softwareRenderer == NULL)
+							{
+								cout << "[WARN] Couldn't create renderer for object rendering: " << SDL_GetError() << endl;
+							}
+							else
+							{
+								currentObject->m_lastRenderedTexture = currentObject->m_compileTextureFunc(currentObject, realBounds, surface, softwareRenderer);
+								if (currentObject->m_lastRenderedTexture == NULL)
+								{
+									cout << "[WARN] Couldn't render object texture: " << SDL_GetError() << endl;
+								}
+								else
+								{
+									currentObject->m_needsTextureUpdate = false;
+								}
+
+								currentObject->m_lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
+								SDL_DestroyRenderer(softwareRenderer);
+							}
+
+							SDL_FreeSurface(surface);
+						}
+					}
+
+					// Draw object
+					SDL_Rect targetRect;
+					targetRect.x = currentObject->m_worldCoords.x;
+					targetRect.y = currentObject->m_worldCoords.y;
+					targetRect.w = realBounds.width;
+					targetRect.h = realBounds.height;
+
+					SDL_RenderCopy(mainRenderer, currentObject->m_lastRenderedTexture, NULL, &targetRect);
+				}
+
+				currentObjectNode = currentObjectNode->nextNode;
+			}
+		}
+
+		SDL_RenderPresent(mainRenderer);
+		frameCount++;
+
+		// Calculate FPS
+		int newTime = clock();
+		if (((float) (newTime - startTime) / CLOCKS_PER_SEC) >= 1.0f)
+		{
+			if (Game_SharedMemory::p_useFPSCounter)
+			{
+				cout << "[INFO] FPS: " << frameCount << endl;
+			}
+
+			// Reach target frame rate
+			if (Game_SharedMemory::p_targetFPS > 0)
+			{
+				if (frameCount > (Game_SharedMemory::p_targetFPS + 5))
+				{
+					sleepTime += 1;
+				}
+				else if (frameCount < (Game_SharedMemory::p_targetFPS - 5) && sleepTime > 0)
+				{
+					sleepTime -= 1;
+				}
+			}
+
+			startTime = newTime;
+			frameCount = 0;
+		}
+
+		if (Game_SharedMemory::p_targetFPS > 0)
+		{
+			game_sleep(sleepTime);
+		}
+	}
+
+	cout << "[INFO] Stopped render thread" << endl;
+}
+
 // SDL
 
 Game_Result game_initializeSDL(string windowTitle)
 {
 	Game_Result result = {GAME_SUCCESS, ""};
 
-	if (Game_SharedMemory::r_SDLInitialized)
+	if (Game_SharedMemory::s_SDLInitialized)
 	{
 		result.returnCode = GAME_ERR_ALREADY_INIT;
 		return result;
@@ -96,100 +299,46 @@ Game_Result game_initializeSDL(string windowTitle)
 	flags = SDL_RENDERER_ACCELERATED;
 	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
 
-	Game_SharedMemory::r_window = window;
-	Game_SharedMemory::r_windowRenderer = windowRenderer;
-	Game_SharedMemory::r_SDLInitialized = true;
+	Game_SharedMemory::s_mainRenderer = windowRenderer;
+	Game_SharedMemory::s_window = window;
+	Game_SharedMemory::s_SDLInitialized = true;
 	return result;
 }
 
 void game_destroySDL()
 {
 	// Destroy renderer and window
-	SDL_DestroyRenderer(Game_SharedMemory::r_windowRenderer);
-	SDL_DestroyWindow(Game_SharedMemory::r_window);
+	SDL_DestroyRenderer(Game_SharedMemory::s_mainRenderer);
+	SDL_DestroyWindow(Game_SharedMemory::s_window);
 
-	// Quit SDL and SDL image
+	// Quit SDL
 	SDL_Quit();
 	IMG_Quit();
 
-	Game_SharedMemory::r_window = NULL;
-	Game_SharedMemory::r_windowRenderer = NULL;
-	Game_SharedMemory::r_SDLInitialized = false;
+	Game_SharedMemory::s_window = NULL;
+	Game_SharedMemory::s_mainRenderer = NULL;
+	Game_SharedMemory::s_SDLInitialized = false;
 }
 
-// Rendering
-
-void game_startRenderThread()
-{
-	Game_SharedMemory::p_running = true;
-
-	// Start thread
-	Game_SharedMemory::m_guiThreadID = game_startThread(game_renderThread);
-	if (Game_SharedMemory::m_guiThreadID < 0)
-	{
-		cout << "[ERR] Couldn't start main thread! Error code: " << Game_SharedMemory::m_guiThreadID << endl;
-	}
-	else
-	{
-		cout << "[INFO] Started GUI thread with ID " << Game_SharedMemory::m_guiThreadID << endl;
-	}
-}
-
-void game_stopRenderThread()
-{
-	Game_SharedMemory::p_running = false;
-}
-
-void game_renderThread()
-{
-	/* Target FPS = 60 */
-	int frameCount = 0;
-	int startTime = clock();
-	int sleepTime = 10;
-	while (Game_SharedMemory::p_running)
-	{
-		// Redraw all objects
-		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
-		{
-			Game_Layer* currentLayer = &Game_SharedMemory::r_layers[i];
-			Game_ObjectNode* currentObjectNode = currentLayer->objectList;
-			while (currentObjectNode != NULL)
-			{
-				// TODO: Draw object
-				currentObjectNode = currentObjectNode->nextNode;
-			}
-		}
-		frameCount++;
-
-		// Check if a second has passed
-		int newTime = clock();
-		if (((float)(newTime - startTime) / CLOCKS_PER_SEC) >= 1.0f)
-		{
-			if (frameCount > (Game_SharedMemory::p_targetFPS + 5))
-			{
-				sleepTime += 1;
-			}
-			else if (frameCount < (Game_SharedMemory::p_targetFPS - 5) && sleepTime > 0)
-			{
-				sleepTime -= 1;
-			}
-
-			if (Game_SharedMemory::p_useFPSCounter)
-			{
-				cout << "[INFO] FPS: " << frameCount << endl;
-			}
-
-			startTime = newTime;
-			frameCount = 0;
-		}
-
-		game_sleep(sleepTime);
-	}
-}
+// Events
 
 void game_processKeyboardEvent(SDL_Event* event)
 {
+	switch (event->key.keysym.sym)
+	{
+		case SDLK_F11:
+			static int lastFlag = 0;
+			lastFlag = (lastFlag == 0 ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
+			SDL_SetWindowFullscreen(Game_SharedMemory::s_window, lastFlag);
+			break;
+		default:
+			if (Game_SharedMemory::m_keyboardInputObject != NULL)
+			{
+				Game_SharedMemory::m_keyboardInputObject->addKeyboardEvent(&event->key);
+			}
+			break;
+	}
 }
 
 void game_processMouseEvent(SDL_Event* event)
@@ -202,7 +351,7 @@ void game_processWindowEvent(SDL_Event* event)
 	switch (event->window.event)
 	{
 		case SDL_WINDOWEVENT_CLOSE:
-			game_stopRenderThread();
+			Game_SharedMemory::p_running = false;
 			break;
 	}
 }

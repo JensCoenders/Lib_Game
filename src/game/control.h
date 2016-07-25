@@ -61,13 +61,22 @@ class Game_SharedMemory
 		static float p_zoomScale;
 
 		// Rendering (r)
-		static bool r_SDLInitialized;
+		static Game_Point r_cameraPos;
+		static Game_Rect r_cameraBounds;
 		static Game_Layer* r_layers;
-		static SDL_Window* r_window;
-		static SDL_Renderer* r_windowRenderer;
+		static int r_renderThreadID;
+
+		// SDL (s)
+		static bool s_SDLInitialized;
+		static SDL_Renderer* s_mainRenderer;
+		static SDL_Window* s_window;
 
 		// Miscellaneous (m)
-		static int m_guiThreadID;
+		static Game_EventObject* m_keyboardInputObject;
+
+		// Functions
+		static bool startRenderingObject(Game_Object* object, unsigned int layerID);
+		static bool stopRenderingObject(Game_Object* object);
 
 };
 
@@ -77,9 +86,9 @@ class Game_SharedMemory
 Game_Result game_initializeSDL(std::string windowTitle);
 void game_destroySDL();
 
-// GUI
+// Rendering
 void game_startRenderThread();
-void game_stopRenderThread();
+void game_joinRenderThread();
 
 // Events
 void game_processKeyboardEvent(SDL_Event* event);

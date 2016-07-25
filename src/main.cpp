@@ -37,17 +37,8 @@ int main(int argc, char** argv)
 	game_run();
 
 	// Cleanup
-	cout << "[INFO] Cleaning up... ";
-	try
-	{
-		game_destroySDL();
-		cout << "[OK]" << endl;
-	}
-	catch (exception& e)
-	{
-		cout << "[ERR]" << endl;
-		cout << "[ERR] Error while cleaning up: " << e.what() << endl;
-	}
+	game_destroySDL();
+	cout << "[INFO] Cleanup complete";
 
 	return GAME_SUCCESS;
 }

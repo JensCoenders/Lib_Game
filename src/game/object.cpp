@@ -19,45 +19,95 @@ string game_rect::toString()
 	return stringStream.str();
 }
 
-void Game_Object::setWorldCoords(Game_Point coords)
+unsigned int Game_Object::getID()
 {
-	if (coords.x >= 0 && coords.y >= 0)
-		m_worldCoords = coords;
-	else
-		cout << "[WARN] Invalid coordinates provided: " << coords.toString() << endl;
+	return m_ID;
 }
 
-void Game_Object::setWorldSize(Game_Rect size)
+SDL_Event* Game_EventObject::pollEvent(SDL_Event** queue)
 {
-	if (size.width > 0 && size.width > 0)
-		m_worldSize = size;
-	else
-		cout << "[WARN] Invalid size provided: " << size.toString() << endl;
+	for (int i = 0; i < GAME_OBJ_MAX_QUEUED_EVENTS; i++)
+	{
+		if (queue[i] != NULL)
+		{
+			SDL_Event* event = queue[i];
+			queue[i] = NULL;
+			return event;
+		}
+	}
+
+	return NULL;
 }
 
-SDL_Texture* Game_Object::compileTexture(SDL_Surface* surface, SDL_Renderer* softwareRenderer)
+SDL_KeyboardEvent* Game_EventObject::pollKeyboardEvent()
 {
-	// Test rendering
-	SDL_RenderClear(softwareRenderer);
-	SDL_Rect targetRect = {0, 0, 50, 50};
+	SDL_KeyboardEvent* event = (SDL_KeyboardEvent*) pollEvent((SDL_Event**) m_queuedKeyboardEvents);
+	if (event != NULL)
+	{
+		m_newKeyboardEvents--;
+	}
 
-	SDL_RenderDrawRect(softwareRenderer, &targetRect);
-	return SDL_CreateTextureFromSurface(softwareRenderer, surface);
+	return event;
 }
 
-void Game_Object::frameUpdate()
+SDL_MouseButtonEvent* Game_EventObject::pollMouseEvent()
 {
-	// Do nothing...
+	SDL_MouseButtonEvent* event = (SDL_MouseButtonEvent*) pollEvent((SDL_Event**) m_queuedMouseEvents);
+	if (event != NULL)
+	{
+		m_newMouseEvents--;
+	}
+
+	return event;
+}
+
+void Game_EventObject::addKeyboardEvent(SDL_KeyboardEvent* event)
+{
+	if (m_newKeyboardEvents < GAME_OBJ_MAX_QUEUED_EVENTS)
+	{
+		m_queuedKeyboardEvents[m_newKeyboardEvents] = event;
+		m_newKeyboardEvents++;
+	}
+}
+
+void Game_EventObject::addMouseEvent(SDL_MouseButtonEvent* event)
+{
+	if (m_newMouseEvents < GAME_OBJ_MAX_QUEUED_EVENTS)
+	{
+		m_queuedMouseEvents[m_newMouseEvents] = event;
+		m_newMouseEvents++;
+	}
 }
 
 Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight)
 {
-	static int lastID = 0;
+	static unsigned int lastID = 0;
 	m_ID = lastID++;
 
-	setWorldCoords( {worldX, worldY});
-	setWorldSize( {worldWidth, worldHeight});
+	m_worldCoords.x = worldX;
+	m_worldCoords.y = worldY;
+	m_worldSize.width = worldWidth;
+	m_worldSize.height = worldHeight;
 
-	m_needsTextureUpdate = false;
+	m_needsTextureUpdate = true;
 	m_lastRenderedTexture = NULL;
+	m_compileTextureFunc = NULL;
+
+	m_frameUpdateFunc = NULL;
+}
+
+Game_EventObject::Game_EventObject(int worldX, int worldY, int worldWidth, int worldHeight) :
+		Game_Object(worldX, worldY, worldWidth, worldHeight)
+{
+	m_newKeyboardEvents = 0;
+	m_queuedKeyboardEvents = new SDL_KeyboardEvent*[GAME_OBJ_MAX_QUEUED_EVENTS];
+
+	m_newMouseEvents = 0;
+	m_queuedMouseEvents = new SDL_MouseButtonEvent*[GAME_OBJ_MAX_QUEUED_EVENTS];
+}
+
+Game_EventObject::~Game_EventObject()
+{
+	delete[] m_queuedKeyboardEvents;
+	delete[] m_queuedMouseEvents;
 }

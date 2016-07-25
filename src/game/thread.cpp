@@ -79,7 +79,7 @@ void game_joinThread(int threadID)
 	}
 
 	// Wait for thread to finish
-	WaitForSingleObject(threadList[threadID], 0);
+	WaitForSingleObject(threadList[threadID], INFINITE);
 	CloseHandle(threadList[threadID]);
 }
 
