@@ -21,7 +21,7 @@ typedef struct game_result
 {
 	public:
 		int returnCode;
-		std::string message;
+		string message;
 
 } Game_Result;
 
@@ -72,7 +72,7 @@ class Game_SharedMemory
 		static SDL_Window* s_window;
 
 		// Miscellaneous (m)
-		static Game_EventObject* m_keyboardInputObject;
+		static Game_Object* m_keyboardInputObject;
 
 		// Functions
 		static bool startRenderingObject(Game_Object* object, unsigned int layerID);
@@ -83,7 +83,7 @@ class Game_SharedMemory
 /* Control functions */
 
 // SDL
-Game_Result game_initializeSDL(std::string windowTitle);
+Game_Result game_initializeSDL(string windowTitle);
 void game_destroySDL();
 
 // Rendering

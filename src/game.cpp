@@ -1,10 +1,39 @@
 #include "game.h"
 
-SDL_Texture* testObjectCT(Game_Object* object, Game_Rect bounds, SDL_Surface* surface, SDL_Renderer* softwareRenderer)
+void testObjectFU(Game_Object* object)
+{
+	int direction = object->getProperty("direction", 0);
+	int speed = object->getProperty("speed", 1);
+
+	if ((direction & 1) == 1)
+		object->m_worldCoords.y -= speed;
+	if ((direction & 4) == 4)
+		object->m_worldCoords.y += speed;
+
+	if ((direction & 2) == 2)
+		object->m_worldCoords.x -= speed;
+	if ((direction & 8) == 8)
+		object->m_worldCoords.x += speed;
+
+	if (object->getProperty("flashing", 0))
+	{
+		static bool lastColorRed = false;
+		if (lastColorRed)
+			object->setProperty("color", 0xFF00);
+		else
+			object->setProperty("color", 0xFF);
+
+		lastColorRed = (lastColorRed == false);
+
+		object->requestTextureUpdate();
+	}
+}
+
+void testObjectCT(Game_Object* object, Game_Rect bounds, SDL_Renderer* renderer)
 {
 	// Test rendering
-	SDL_SetRenderDrawColor(softwareRenderer, 255, 255, 255, 255);
-	SDL_RenderClear(softwareRenderer);
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_RenderClear(renderer);
 
 	SDL_Rect rect;
 	rect.x = 0;
@@ -12,65 +41,118 @@ SDL_Texture* testObjectCT(Game_Object* object, Game_Rect bounds, SDL_Surface* su
 	rect.w = bounds.width;
 	rect.h = bounds.height;
 
-	SDL_SetRenderDrawColor(softwareRenderer, 0, 255, 0, 255);
-	SDL_RenderFillRect(softwareRenderer, &rect);
+	int color = object->getProperty("color", 0xFF00);
+	int r = color & 0xFF;
+	int g = (color & 0xFF00) / 256;
+	int b = (color & 0xFF0000) / (256 * 256);
 
-	cout << "Test object with ID " << object->getID() << " texture updated" << endl;
-	return SDL_CreateTextureFromSurface(softwareRenderer, surface);
+	SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+	SDL_RenderFillRect(renderer, &rect);
 }
 
-void testObjectFU(Game_Object* object)
+void testObjectKeyTyped(Game_Object* object, SDL_Event* eventData)
 {
-	static short int movementDirection = 0;
-	Game_EventObject* eventObject = (Game_EventObject*) object;
+	int direction = object->getProperty("direction", 0);
+	int newDirection = direction;
 
-	while (eventObject->m_newKeyboardEvents > 0)
+	SDL_KeyboardEvent* event = (SDL_KeyboardEvent*) eventData;
+	bool keyDown = (event->type == SDL_KEYDOWN);
+	switch (event->keysym.sym)
 	{
-		SDL_KeyboardEvent* event = eventObject->pollKeyboardEvent();
-		bool keyDown = (event->type == SDL_KEYDOWN);
+		case SDLK_w:
+			if (keyDown)
+				newDirection |= 1;
+			else
+				newDirection ^= 1;
+			break;
+		case SDLK_a:
+			if (keyDown)
+				newDirection |= 2;
+			else
+				newDirection ^= 2;
+			break;
+		case SDLK_s:
+			if (keyDown)
+				newDirection |= 4;
+			else
+				newDirection ^= 4;
+			break;
+		case SDLK_d:
+			if (keyDown)
+				newDirection |= 8;
+			else
+				newDirection ^= 8;
+			break;
+	}
+
+	if (newDirection != direction)
+		object->setProperty("direction", newDirection);
+
+	if (keyDown)
+	{
+		int color = object->getProperty("color", 0);
+		int newColor = color;
 
 		switch (event->keysym.sym)
 		{
-			case SDLK_UP:
-				if (keyDown)
-					movementDirection |= 1;
-				else
-					movementDirection ^= 1;
-
+			case SDLK_1:
+				newColor = 0xFF;
 				break;
-			case SDLK_LEFT:
-				if (keyDown)
-					movementDirection |= 2;
-				else
-					movementDirection ^= 2;
+			case SDLK_2:
+				newColor = 0xFF00;
+				break;
+			case SDLK_3:
+				newColor = 0xFF0000;
+				break;
+			case SDLK_4:
+				newColor = 0xFFFF;
+				break;
+			case SDLK_5:
+				newColor = 0xFFFF00;
+				break;
+			case SDLK_6:
+				newColor = 0xFF00FF;
+				break;
+			case SDLK_UP:
+				Game_SharedMemory::p_zoomScale += 0.5f;
 				break;
 			case SDLK_DOWN:
-				if (keyDown)
-					movementDirection |= 4;
-				else
-					movementDirection ^= 4;
-				break;
-			case SDLK_RIGHT:
-				if (keyDown)
-					movementDirection |= 8;
-				else
-					movementDirection ^= 8;
-				break;
-			case SDLK_SPACE:
+				if (Game_SharedMemory::p_zoomScale > 0)
+					Game_SharedMemory::p_zoomScale -= 0.5f;
 
 				break;
+			case SDLK_r:
+				object->m_worldCoords.x = 0;
+				object->m_worldCoords.y = 0;
+				Game_SharedMemory::p_zoomScale = 1.0f;
+				object->setProperty("flashing", 0);
+				newColor = 0xFF00;
+				break;
+			case SDLK_f:
+			{
+				int flashing = object->getProperty("flashing", 0);
+				object->setProperty("flashing", (flashing? 0 : 1));
+				break;
+			}
+			case SDLK_SPACE:
+			{
+				int speed = object->getProperty("speed", 1);
+				if ((event->keysym.mod & KMOD_LSHIFT) && speed > 0)
+					speed--;
+				else
+					speed++;
+
+				object->setProperty("speed", speed);
+				break;
+			}
+		}
+
+		if (newColor != color)
+		{
+			object->setProperty("color", newColor);
+			object->requestTextureUpdate();
 		}
 	}
-
-	if ((movementDirection & 1) == 1)
-		eventObject->m_worldCoords.y--;
-	if ((movementDirection & 4) == 4)
-		eventObject->m_worldCoords.y++;
-
-	if ((movementDirection & 2) == 2)
-		eventObject->m_worldCoords.x--;
-	if ((movementDirection & 8) == 8)
-		eventObject->m_worldCoords.x++;
 }
 
 void game_run()
@@ -79,9 +161,10 @@ void game_run()
 	game_startRenderThread();
 
 	// Create game objects
-	Game_EventObject testObject(0, 0, 100, 100);
-	testObject.m_frameUpdateFunc = testObjectFU;
-	testObject.m_compileTextureFunc = testObjectCT;
+	Game_Object testObject(0, 0, 100, 100);
+	testObject.setFrameUpdate(testObjectFU);
+	testObject.setTextureUpdate(testObjectCT);
+	testObject.setEventFunction(TYPE_KEY_TYPED, testObjectKeyTyped);
 
 	Game_SharedMemory::startRenderingObject(&testObject, 0);
 	Game_SharedMemory::m_keyboardInputObject = &testObject;

@@ -5,6 +5,8 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+	// TODO: Fix rendering freeze when window resizes
+
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
 	Game_Result result = game_initializeSDL("Jens Game V2.0");

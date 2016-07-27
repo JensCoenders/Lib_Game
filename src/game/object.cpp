@@ -24,66 +24,100 @@ unsigned int Game_Object::getID()
 	return m_ID;
 }
 
-SDL_Event* Game_EventObject::pollEvent(SDL_Event** queue)
+void Game_Object::frameUpdate()
 {
-	for (int i = 0; i < GAME_OBJ_MAX_QUEUED_EVENTS; i++)
+	if (m_frameUpdateFunc)
 	{
-		if (queue[i] != NULL)
-		{
-			SDL_Event* event = queue[i];
-			queue[i] = NULL;
-			return event;
-		}
-	}
-
-	return NULL;
-}
-
-SDL_KeyboardEvent* Game_EventObject::pollKeyboardEvent()
-{
-	SDL_KeyboardEvent* event = (SDL_KeyboardEvent*) pollEvent((SDL_Event**) m_queuedKeyboardEvents);
-	if (event != NULL)
-	{
-		m_newKeyboardEvents--;
-	}
-
-	return event;
-}
-
-SDL_MouseButtonEvent* Game_EventObject::pollMouseEvent()
-{
-	SDL_MouseButtonEvent* event = (SDL_MouseButtonEvent*) pollEvent((SDL_Event**) m_queuedMouseEvents);
-	if (event != NULL)
-	{
-		m_newMouseEvents--;
-	}
-
-	return event;
-}
-
-void Game_EventObject::addKeyboardEvent(SDL_KeyboardEvent* event)
-{
-	if (m_newKeyboardEvents < GAME_OBJ_MAX_QUEUED_EVENTS)
-	{
-		m_queuedKeyboardEvents[m_newKeyboardEvents] = event;
-		m_newKeyboardEvents++;
+		m_frameUpdateFunc(this);
 	}
 }
 
-void Game_EventObject::addMouseEvent(SDL_MouseButtonEvent* event)
+void Game_Object::setFrameUpdate(Game_ObjectFUFunc function)
 {
-	if (m_newMouseEvents < GAME_OBJ_MAX_QUEUED_EVENTS)
+	if (!function)
 	{
-		m_queuedMouseEvents[m_newMouseEvents] = event;
-		m_newMouseEvents++;
+		cout << "[WARN] Attempting to set NULL function as FU function!" << endl;
+		return;
+	}
+
+	m_frameUpdateFunc = function;
+}
+
+void Game_Object::textureUpdate(Game_Rect bounds, SDL_Renderer* renderer)
+{
+	if (!m_textureUpdateFunc)
+		return;
+
+	m_textureUpdateFunc(this, bounds, renderer);
+}
+
+void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
+{
+	if (!function)
+	{
+		cout << "[WARN] Attempting to set NULL function as TU function!" << endl;
+		return;
+	}
+
+	m_textureUpdateFunc = function;
+}
+
+void Game_Object::requestTextureUpdate()
+{
+	m_needsTextureUpdate = true;
+}
+
+bool Game_Object::needsTextureUpdate()
+{
+	return (m_needsTextureUpdate && m_textureUpdateFunc);
+}
+
+bool Game_Object::callEventFunction(Game_ObjectEventType type, SDL_Event* event)
+{
+	switch (type)
+	{
+		case TYPE_KEY_TYPED:
+			if (m_keyTypedFunc)
+				m_keyTypedFunc(this, event);
+			else
+				return false;
+
+			break;
+		case TYPE_MOUSE_CLICKED:
+			if (m_mouseClickedFunc)
+				m_mouseClickedFunc(this, event);
+			else
+				return false;
+
+			break;
+
+		default:
+			return false;
+	}
+	return true;
+}
+
+void Game_Object::setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function)
+{
+	if (!function)
+	{
+		cout << "[WARN] Attempting to set NULL function as event function!" << endl;
+		return;
+	}
+
+	switch (type)
+	{
+		case TYPE_KEY_TYPED:
+			m_keyTypedFunc = function;
+			break;
+		case TYPE_MOUSE_CLICKED:
+			m_mouseClickedFunc = function;
+			break;
 	}
 }
 
 Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight)
 {
-	static unsigned int lastID = 0;
-	m_ID = lastID++;
-
 	m_worldCoords.x = worldX;
 	m_worldCoords.y = worldY;
 	m_worldSize.width = worldWidth;
@@ -91,23 +125,37 @@ Game_Object::Game_Object(int worldX, int worldY, int worldWidth, int worldHeight
 
 	m_needsTextureUpdate = true;
 	m_lastRenderedTexture = NULL;
-	m_compileTextureFunc = NULL;
 
 	m_frameUpdateFunc = NULL;
+	m_textureUpdateFunc = NULL;
+
+	m_keyTypedFunc = NULL;
+	m_mouseClickedFunc = NULL;
+
+	m_integerProperties = NULL;
+	m_stringProperties = NULL;
+
+	static unsigned int lastID = 0;
+	m_ID = lastID++;
 }
 
-Game_EventObject::Game_EventObject(int worldX, int worldY, int worldWidth, int worldHeight) :
-		Game_Object(worldX, worldY, worldWidth, worldHeight)
+Game_Object::~Game_Object()
 {
-	m_newKeyboardEvents = 0;
-	m_queuedKeyboardEvents = new SDL_KeyboardEvent*[GAME_OBJ_MAX_QUEUED_EVENTS];
+	Game_ObjectProperty<string>* currentStringProperty = m_stringProperties;
+	Game_ObjectProperty<string>* tempStringProperty = NULL;
+	while (currentStringProperty)
+	{
+		tempStringProperty = currentStringProperty->nextProperty;
+		delete currentStringProperty;
+		currentStringProperty = tempStringProperty;
+	}
 
-	m_newMouseEvents = 0;
-	m_queuedMouseEvents = new SDL_MouseButtonEvent*[GAME_OBJ_MAX_QUEUED_EVENTS];
-}
-
-Game_EventObject::~Game_EventObject()
-{
-	delete[] m_queuedKeyboardEvents;
-	delete[] m_queuedMouseEvents;
+	Game_ObjectProperty<int>* currentIntegerProperty = m_integerProperties;
+	Game_ObjectProperty<int>* tempIntegerProperty = NULL;
+	while (currentIntegerProperty)
+	{
+		tempIntegerProperty = currentIntegerProperty->nextProperty;
+		delete currentIntegerProperty;
+		currentIntegerProperty = tempIntegerProperty;
+	}
 }

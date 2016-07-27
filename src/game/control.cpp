@@ -21,8 +21,46 @@ bool Game_SharedMemory::s_SDLInitialized = false;
 SDL_Renderer* Game_SharedMemory::s_mainRenderer = NULL;
 SDL_Window* Game_SharedMemory::s_window = NULL;
 
-Game_EventObject* Game_SharedMemory::m_keyboardInputObject = NULL;
+Game_Object* Game_SharedMemory::m_keyboardInputObject = NULL;
 
+/* Extra control functions */
+
+// Rendering
+void game_renderThread();
+
+// Events
+void game_processKeyboardEvent(SDL_Event* event);
+void game_processMouseEvent(SDL_Event* event);
+void game_processWindowEvent(SDL_Event* event);
+
+game_objectnode::game_objectnode()
+{
+	prevNode = NULL;
+	nextNode = NULL;
+	object = NULL;
+}
+
+game_objectnode::~game_objectnode()
+{
+	if (prevNode != NULL)
+		delete prevNode;
+
+	if (nextNode != NULL)
+		delete nextNode;
+}
+
+game_layer::game_layer()
+{
+	objectCount = 0;
+	objectList = NULL;
+}
+
+game_layer::~game_layer()
+{
+	delete objectList;   // Deleting the first object node will destroy the whole linked list
+}
+
+/* Shared Memory */
 bool Game_SharedMemory::startRenderingObject(Game_Object* object, unsigned int layerID)
 {
 	if (layerID >= GAME_LAYER_AMOUNT)
@@ -75,43 +113,6 @@ bool Game_SharedMemory::stopRenderingObject(Game_Object* object)
 	return false;
 }
 
-/* Extra control functions */
-
-// Rendering
-void game_renderThread();
-
-// Events
-void game_processKeyboardEvent(SDL_Event* event);
-void game_processMouseEvent(SDL_Event* event);
-void game_processWindowEvent(SDL_Event* event);
-
-game_objectnode::game_objectnode()
-{
-	prevNode = NULL;
-	nextNode = NULL;
-	object = NULL;
-}
-
-game_objectnode::~game_objectnode()
-{
-	if (prevNode != NULL)
-		delete prevNode;
-
-	if (nextNode != NULL)
-		delete nextNode;
-}
-
-game_layer::game_layer()
-{
-	objectCount = 0;
-	objectList = NULL;
-}
-
-game_layer::~game_layer()
-{
-	delete objectList;	// Deleting the first object node will destroy the whole linked list
-}
-
 /* Control functions */
 
 // Rendering
@@ -140,7 +141,7 @@ void game_renderThread()
 {
 	// Setup renderer
 	SDL_Renderer* mainRenderer = Game_SharedMemory::s_mainRenderer;
-	SDL_SetRenderDrawColor(mainRenderer, 255, 0, 0, 0);
+	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 0);
 
 	// Rendering loop
 	int frameCount = 0, sleepTime = 10, startTime = clock();
@@ -161,55 +162,53 @@ void game_renderThread()
 				realBounds.height = currentObject->m_worldSize.height * Game_SharedMemory::p_zoomScale;
 
 				// Frame-update object
-				if (currentObject->m_frameUpdateFunc != NULL)
-				{
-					currentObject->m_frameUpdateFunc(currentObject);
-				}
+				currentObject->frameUpdate();
 
 				// Re-render object if necessary
-				if (currentObject->m_compileTextureFunc != NULL)
+				if (currentObject->needsTextureUpdate())
 				{
-					if (currentObject->m_needsTextureUpdate)
+					if (currentObject->m_lastRenderedTexture != NULL)
 					{
-						if (currentObject->m_lastRenderedTexture != NULL)
-						{
-							SDL_DestroyTexture(currentObject->m_lastRenderedTexture);
-							currentObject->m_lastRenderedTexture = NULL;
-						}
+						SDL_DestroyTexture(currentObject->m_lastRenderedTexture);
+						currentObject->m_lastRenderedTexture = NULL;
+					}
 
-						SDL_Surface* surface = SDL_CreateRGBSurface(0, realBounds.width, realBounds.height, 32, 0, 0, 0, 0);
-						if (surface == NULL)
+					SDL_Surface* surface = SDL_CreateRGBSurface(0, realBounds.width, realBounds.height, 32, 0, 0, 0, 0);
+					if (surface == NULL)
+					{
+						cout << "[WARN] Couldn't create surface for object rendering: " << SDL_GetError() << endl;
+					}
+					else
+					{
+						SDL_Renderer* softwareRenderer = SDL_CreateSoftwareRenderer(surface);
+						if (softwareRenderer == NULL)
 						{
-							cout << "[WARN] Couldn't create surface for object rendering: " << SDL_GetError() << endl;
+							cout << "[WARN] Couldn't create renderer for object rendering: " << SDL_GetError() << endl;
 						}
 						else
 						{
-							SDL_Renderer* softwareRenderer = SDL_CreateSoftwareRenderer(surface);
-							if (softwareRenderer == NULL)
+							currentObject->textureUpdate(realBounds, softwareRenderer);
+							currentObject->m_lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
+							if (!currentObject->m_lastRenderedTexture)
 							{
-								cout << "[WARN] Couldn't create renderer for object rendering: " << SDL_GetError() << endl;
+								cout << "[WARN] Couldn't render object texture: " << SDL_GetError() << endl;
 							}
 							else
 							{
-								currentObject->m_lastRenderedTexture = currentObject->m_compileTextureFunc(currentObject, realBounds, surface, softwareRenderer);
-								if (currentObject->m_lastRenderedTexture == NULL)
-								{
-									cout << "[WARN] Couldn't render object texture: " << SDL_GetError() << endl;
-								}
-								else
-								{
-									currentObject->m_needsTextureUpdate = false;
-								}
-
-								currentObject->m_lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
-								SDL_DestroyRenderer(softwareRenderer);
+								currentObject->m_needsTextureUpdate = false;
 							}
 
-							SDL_FreeSurface(surface);
+							SDL_DestroyRenderer(softwareRenderer);
 						}
-					}
 
+						SDL_FreeSurface(surface);
+					}
+				}
+
+				if (currentObject->m_lastRenderedTexture)
+				{
 					// Draw object
+					// TODO: Implement camera bounds
 					SDL_Rect targetRect;
 					targetRect.x = currentObject->m_worldCoords.x;
 					targetRect.y = currentObject->m_worldCoords.y;
@@ -327,15 +326,18 @@ void game_processKeyboardEvent(SDL_Event* event)
 	switch (event->key.keysym.sym)
 	{
 		case SDLK_F11:
-			static int lastFlag = 0;
-			lastFlag = (lastFlag == 0 ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+			if (event->type == SDL_KEYDOWN)
+			{
+				static int lastFlag = 0;
+				lastFlag = (lastFlag == 0 ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
-			SDL_SetWindowFullscreen(Game_SharedMemory::s_window, lastFlag);
+				SDL_SetWindowFullscreen(Game_SharedMemory::s_window, lastFlag);
+			}
 			break;
 		default:
-			if (Game_SharedMemory::m_keyboardInputObject != NULL)
+			if (Game_SharedMemory::m_keyboardInputObject)
 			{
-				Game_SharedMemory::m_keyboardInputObject->addKeyboardEvent(&event->key);
+				Game_SharedMemory::m_keyboardInputObject->callEventFunction(TYPE_KEY_TYPED, event);
 			}
 			break;
 	}
@@ -350,6 +352,8 @@ void game_processWindowEvent(SDL_Event* event)
 {
 	switch (event->window.event)
 	{
+		case SDL_WINDOWEVENT_RESIZED:
+			break;
 		case SDL_WINDOWEVENT_CLOSE:
 			Game_SharedMemory::p_running = false;
 			break;
