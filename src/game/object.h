@@ -4,75 +4,59 @@
 #include <SDL.h>
 #include <string>
 #include <typeinfo>
+#include "types.h"
 
 using namespace std;
 
 /* Type definitions */
 
-typedef struct game_point
-{
-		unsigned int x, y;
-		string toString();
-
-} Game_Point;
-
-typedef struct game_rect
-{
-		unsigned int width, height;
-		string toString();
-
-} Game_Rect;
-
-typedef struct game_objecttudata
-{
-	public:
-		Game_Rect bounds;
-		SDL_Surface* surface;
-		SDL_Renderer* softwareRenderer;
-
-} Game_ObjectTUData;
-
-template<typename T>
-struct Game_ObjectProperty;
-
-template<typename T>
-struct Game_ObjectProperty
-{
-	public:
-		string name;
-		T value;
-		Game_ObjectProperty* nextProperty;
-
-};
-
-typedef enum game_objecteventtype
-{
-	TYPE_KEY_TYPED,
-	TYPE_MOUSE_CLICKED
-
-} Game_ObjectEventType;
-
 class Game_Object;
+typedef struct game_objectnode Game_ObjectNode;
+typedef struct game_objectnode
+{
+	public:
+		Game_ObjectNode* prevNode;
+		Game_ObjectNode* nextNode;
+		Game_Object* object;
+
+		game_objectnode();
+		~game_objectnode();
+
+} Game_ObjectNode;
+
+typedef struct game_layer
+{
+	public:
+		int objectCount;
+		Game_ObjectNode* objectList;
+
+		game_layer();
+		~game_layer();
+
+} Game_Layer;
+
 typedef void (*Game_ObjectFUFunc)(Game_Object* object);
-typedef void (*Game_ObjectTUFunc)(Game_Object* object, Game_Rect bounds, SDL_Renderer* renderer);
+typedef void (*Game_ObjectTUFunc)(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer);
 typedef void (*Game_ObjectEventFunc)(Game_Object* object, SDL_Event* eventData);
 
-// TODO: Create setColor function
 class Game_Object
 {
 	public:
-		// World variables
-		Game_Point m_worldCoords;
-		Game_Rect m_worldSize;
-
 		// Texture variables
 		bool m_needsTextureUpdate;
+		Game_Rect m_textureSize;
 		SDL_Texture* m_lastRenderedTexture;
+
+		// World functions
+		Game_Point getCoords();
+		void setCoords(int x, int y);
+		Game_Rect getSize();
+		void setSize(int width, int height);
 
 		// Update functions
 		void frameUpdate();
 		void setFrameUpdate(Game_ObjectFUFunc function);
-		void textureUpdate(Game_Rect bounds, SDL_Renderer* renderer);
+		void textureUpdate(SDL_Surface* surface, SDL_Renderer* renderer);
 		void setTextureUpdate(Game_ObjectTUFunc function);
 
 		// Texture functions
@@ -84,18 +68,24 @@ class Game_Object
 		void setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function);
 
 		// Property functions
-		template<typename T>
-		T getProperty(string name, T defaultValue);
+		int getIntProperty(string name, int defaultValue);
+		bool getBoolProperty(string name, bool defaultValue);
+		string getStringProperty(string name, string defaultValue);
 
-		template<typename T>
+		template <typename T>
 		void setProperty(string name, T value);
 
 		// Miscellaneous functions
 		unsigned int getID();
+		Game_ObjectType getType();
 
-		Game_Object(int worldX, int worldY, int worldWidth, int worldHeight);
+		Game_Object(int x, int y, int w, int h);
 		~Game_Object();
-	private:
+	protected:
+		// World variables
+		Game_Point m_coords;
+		Game_Rect m_size;
+
 		// Update function variables
 		Game_ObjectFUFunc m_frameUpdateFunc;
 		Game_ObjectTUFunc m_textureUpdateFunc;
@@ -105,74 +95,79 @@ class Game_Object
 		Game_ObjectEventFunc m_mouseClickedFunc;
 
 		// Property variables
-		Game_ObjectProperty<string>* m_stringProperties;
-		Game_ObjectProperty<int>* m_integerProperties;
-		// TODO: Create m_booleanProperties
+		Game_ObjectProperty* m_properties;
 
 		// Miscellaneous variables
 		unsigned int m_ID;
+		Game_ObjectType m_objectType;
+
+		// Property functions
+		Game_ObjectProperty* findPropertyByName(string name);
 
 };
 
-template<typename T>
-T Game_Object::getProperty(string name, T defaultValue)
-{
-	for (unsigned int i = 0; i < name.length(); i++)
-	{
-		name[i] = tolower(name.at(i));
-	}
-
-	Game_ObjectProperty<T>* currentProperty = NULL;
-	if (typeid(T) == typeid(int))
-		currentProperty = (Game_ObjectProperty<T>*) m_integerProperties;
-	else if (typeid(T) == typeid(string))
-		currentProperty = (Game_ObjectProperty<T>*) m_stringProperties;
-
-	while (currentProperty)
-	{
-		if (name == currentProperty->name)
-		{
-			return currentProperty->value;
-		}
-		currentProperty = currentProperty->nextProperty;
-	}
-
-	return defaultValue;
-}
-
-template<typename T>
+template <typename T>
 void Game_Object::setProperty(string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
-	{
 		name[i] = tolower(name.at(i));
-	}
 
-	Game_ObjectProperty<T>** baseProperty = NULL;
-	if (typeid(T) == typeid(int))
-		baseProperty = (Game_ObjectProperty<T>**) &m_integerProperties;
-	else if (typeid(T) == typeid(string))
-		baseProperty = (Game_ObjectProperty<T>**) &m_stringProperties;
-
-	Game_ObjectProperty<T>* currentProperty = *baseProperty;
-	while (currentProperty)
-	{
-		if (name == currentProperty->name)
-		{
-			currentProperty->value = value;
-			break;
-		}
-		currentProperty = currentProperty->nextProperty;
-	}
-
+	Game_ObjectProperty* currentProperty = findPropertyByName(name);
 	if (!currentProperty)
 	{
-		Game_ObjectProperty<T>* newProperty = new Game_ObjectProperty<T>();
-		newProperty->name = name;
-		newProperty->value = value;
-		newProperty->nextProperty = *baseProperty;
-		*baseProperty = newProperty;
+		currentProperty = new Game_ObjectProperty();
+		currentProperty->m_name = name;
+		currentProperty->m_nextProperty = m_properties;
+		m_properties = currentProperty;
+	}
+
+	if (typeid(T) == typeid(int))
+	{
+		if (!currentProperty->m_intValue)
+			currentProperty->m_intValue = new int();
+
+		*currentProperty->m_intValue = value;
+	}
+	else if (typeid(T) == typeid(bool))
+	{
+		if (!currentProperty->m_boolValue)
+			currentProperty->m_boolValue = new bool();
+
+		*currentProperty->m_boolValue = value;
+	}
+	else if (typeid(T) == typeid(string))
+	{
+		if (!currentProperty->m_stringValue)
+			currentProperty->m_stringValue = new string();
+
+		*currentProperty->m_stringValue = value;
 	}
 }
+
+class Game_GUIObject : public Game_Object
+{
+	public:
+		// Text
+		string getText();
+		void setText(string text);
+
+		SDL_Color getTextColor();
+		void setTextColor(SDL_Color color);
+
+		SDL_Color getBackgroundColor();
+		void setBackgroundColor(SDL_Color color);
+
+		Game_GUIObject(int x, int y, int w, int h);
+	private:
+		string m_text;
+		SDL_Color m_textColor;
+		SDL_Color m_backgroundColor;
+};
+
+class Game_WorldObject : public Game_Object
+{
+	public:
+		Game_WorldObject(int worldX, int worldY, int worldWidth, int worldHeight);
+};
 
 #endif

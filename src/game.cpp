@@ -1,21 +1,28 @@
+#include <iostream>
 #include "game.h"
 
 void testObjectFU(Game_Object* object)
 {
-	int direction = object->getProperty("direction", 0);
-	int speed = object->getProperty("speed", 1);
+	Game_WorldObject* worldObject = (Game_WorldObject*) object;
 
+	int direction = object->getIntProperty("direction", 0);
+	int speed = object->getIntProperty("speed", 1);
+
+	int newX = worldObject->getCoords().x;
+	int newY = worldObject->getCoords().y;
 	if ((direction & 1) == 1)
-		object->m_worldCoords.y -= speed;
+		newY -= speed;
 	if ((direction & 4) == 4)
-		object->m_worldCoords.y += speed;
+		newY += speed;
 
 	if ((direction & 2) == 2)
-		object->m_worldCoords.x -= speed;
+		newX -= speed;
 	if ((direction & 8) == 8)
-		object->m_worldCoords.x += speed;
+		newX += speed;
 
-	if (object->getProperty("flashing", 0))
+	worldObject->setCoords(newX, newY);
+
+	if (worldObject->getBoolProperty("flashing", false))
 	{
 		static bool lastColorRed = false;
 		if (lastColorRed)
@@ -25,34 +32,30 @@ void testObjectFU(Game_Object* object)
 
 		lastColorRed = (lastColorRed == false);
 
-		object->requestTextureUpdate();
+		worldObject->requestTextureUpdate();
 	}
 }
 
-void testObjectCT(Game_Object* object, Game_Rect bounds, SDL_Renderer* renderer)
+void testObjectCT(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer)
 {
-	// Test rendering
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	SDL_RenderClear(renderer);
+	SDL_Rect destRect;
+	destRect.x = 0;
+	destRect.y = 0;
+	destRect.w = surface->w;
+	destRect.h = surface->h;
 
-	SDL_Rect rect;
-	rect.x = 0;
-	rect.y = 0;
-	rect.w = bounds.width;
-	rect.h = bounds.height;
-
-	int color = object->getProperty("color", 0xFF00);
+	int color = object->getIntProperty("color", 0xFF00);
 	int r = color & 0xFF;
 	int g = (color & 0xFF00) / 256;
 	int b = (color & 0xFF0000) / (256 * 256);
 
 	SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-	SDL_RenderFillRect(renderer, &rect);
+	SDL_RenderFillRect(renderer, &destRect);
 }
 
 void testObjectKeyTyped(Game_Object* object, SDL_Event* eventData)
 {
-	int direction = object->getProperty("direction", 0);
+	int direction = object->getIntProperty("direction", 0);
 	int newDirection = direction;
 
 	SDL_KeyboardEvent* event = (SDL_KeyboardEvent*) eventData;
@@ -90,7 +93,7 @@ void testObjectKeyTyped(Game_Object* object, SDL_Event* eventData)
 
 	if (keyDown)
 	{
-		int color = object->getProperty("color", 0);
+		int color = object->getIntProperty("color", 0);
 		int newColor = color;
 
 		switch (event->keysym.sym)
@@ -122,22 +125,22 @@ void testObjectKeyTyped(Game_Object* object, SDL_Event* eventData)
 
 				break;
 			case SDLK_r:
-				object->m_worldCoords.x = 0;
-				object->m_worldCoords.y = 0;
+				object->setCoords(0, 0);
 				Game_SharedMemory::p_zoomScale = 1.0f;
-				object->setProperty("flashing", 0);
+				object->setProperty("flashing", false);
+				object->setProperty("speed", 1);
 				newColor = 0xFF00;
 				break;
 			case SDLK_f:
 			{
-				int flashing = object->getProperty("flashing", 0);
-				object->setProperty("flashing", (flashing? 0 : 1));
+				int flashing = object->getBoolProperty("flashing", false);
+				object->setProperty("flashing", (flashing == false));
 				break;
 			}
 			case SDLK_SPACE:
 			{
-				int speed = object->getProperty("speed", 1);
-				if ((event->keysym.mod & KMOD_LSHIFT) && speed > 0)
+				int speed = object->getIntProperty("speed", 1);
+				if ((event->keysym.mod & KMOD_LSHIFT) && speed > 1)
 					speed--;
 				else
 					speed++;
@@ -164,9 +167,9 @@ void game_run()
 	Game_Object testObject(0, 0, 100, 100);
 	testObject.setFrameUpdate(testObjectFU);
 	testObject.setTextureUpdate(testObjectCT);
-	testObject.setEventFunction(TYPE_KEY_TYPED, testObjectKeyTyped);
+	testObject.setEventFunction(EVENT_TYPE_KEY, testObjectKeyTyped);
 
-	Game_SharedMemory::startRenderingObject(&testObject, 0);
+	Game_SharedMemory::startRenderingObject(&testObject, GAME_LAYER_LEVEL_FOREGROUND);
 	Game_SharedMemory::m_keyboardInputObject = &testObject;
 
 	// Main loop
@@ -199,6 +202,7 @@ void game_run()
 
 	// Clear shared memory
 	delete[] Game_SharedMemory::r_layers;
+	delete Game_SharedMemory::m_fpsObject;
 
 	cout << "[INFO] Stopped main thread" << endl;
 }

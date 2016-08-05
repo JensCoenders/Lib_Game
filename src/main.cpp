@@ -9,30 +9,35 @@ int main(int argc, char** argv)
 
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
-	Game_Result result = game_initializeSDL("Jens Game V2.0");
-	switch (result.returnCode)
+	int returnCode = game_initializeSDL("Jens Game V2.0");
+	if (!returnCode)
+		cout << "[OK]" << endl;
+	else if (returnCode == -1)
+		cout << "[WARN]" << endl << "[WARN] SDL has already been initialized!" << endl;
+	else
 	{
-		case GAME_SUCCESS:
-			cout << "[OK]" << endl;
-			break;
-		case GAME_ERR_ALREADY_INIT:
-			cout << "[WARN]" << endl;
-			cout << "[INFO] SDL has already been initialized!?" << endl;
-			break;
-		case GAME_CRIT_SDL:
-			cout << "[CRIT]" << endl;
-			cout << "[CRIT] Failed to initialize SDL!" << endl;
-			cout << "[CRIT] Error: " << result.message << endl;
-			return GAME_CRIT_SDL;
-		case GAME_CRIT_SDL_IMG:
-			cout << "[CRIT]" << endl;
-			cout << "[CRIT] Failed to initialize SDL image!" << endl;
-			cout << "[CRIT] Error: " << result.message << endl;
-			return GAME_CRIT_SDL_IMG;
-		default:
-			cout << "[WARN]" << endl;
-			cout << "[WARN] Unrecognized return code: " << result.returnCode << endl;
-			break;
+		switch (returnCode)
+		{
+			case -2:
+				cout << "[CRIT]" << endl;
+				cout << "[CRIT] Failed to initialize SDL! Error: " << SDL_GetError() << endl;
+				break;
+			case -3:
+				cout << "[CRIT]" << endl;
+				cout << "[CRIT] Failed to initialize SDL_image! Error: " << IMG_GetError() << endl;
+				break;
+			case -4:
+				cout << "[CRIT]" << endl;
+				cout << "[CRIT] Failed to initialize SDL_ttf! Error: " << TTF_GetError() << endl;
+				break;
+			default:
+				cout << "[WARN]" << endl;
+				cout << "[WARN] Unrecognized return code: " << returnCode << endl;
+				break;
+		}
+
+		game_destroySDL();
+		return returnCode;
 	}
 
 	// Call game startup
@@ -42,5 +47,5 @@ int main(int argc, char** argv)
 	game_destroySDL();
 	cout << "[INFO] Cleanup complete";
 
-	return GAME_SUCCESS;
+	return 0;
 }
