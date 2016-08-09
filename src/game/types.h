@@ -34,19 +34,22 @@ using namespace std;
 
 typedef enum game_objecttype
 {
-	OBJECT_TYPE_NORMAL, OBJECT_TYPE_GUI, OBJECT_TYPE_WORLD
+	OBJECT_TYPE_NORMAL,
+	OBJECT_TYPE_GUI,
+	OBJECT_TYPE_WORLD
 
 } Game_ObjectType;
 
 typedef enum game_objecteventtype
 {
-	EVENT_TYPE_KEY, EVENT_TYPE_MOUSE
+	EVENT_TYPE_KEY,
+	EVENT_TYPE_MOUSE
 
 } Game_ObjectEventType;
 
 typedef struct game_point
 {
-		unsigned int x, y;
+		int x, y;
 		string toString();
 
 } Game_Point;
@@ -57,6 +60,16 @@ typedef struct game_rect
 		string toString();
 
 } Game_Rect;
+
+typedef struct game_camera
+{
+	public:
+		Game_Point m_position;
+		Game_Rect m_size;
+		unsigned char m_movementDirection;
+		int m_movementSpeed;
+
+} Game_Camera;
 
 typedef struct game_objectproperty Game_ObjectProperty;
 typedef struct game_objectproperty
@@ -69,7 +82,7 @@ typedef struct game_objectproperty
 		bool* m_boolValue;
 		string* m_stringValue;
 
-		template <typename T>
+		template<typename T>
 		void setValue(T value);
 
 		game_objectproperty();

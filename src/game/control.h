@@ -4,20 +4,18 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include "shared.h"
+#include "event.h"
 
 using namespace std;
 
 /* Control functions */
 
+// Main
+void game_mainLoop();
+
 // Rendering
 void game_startRenderThread();
 void game_joinRenderThread();
-
-// Events
-void game_processKeyboardEvent(SDL_Event* event);
-void game_processMouseEvent(SDL_Event* event);
-void game_processWindowEvent(SDL_Event* event);
 
 // SDL
 int game_initializeSDL(string windowTitle);

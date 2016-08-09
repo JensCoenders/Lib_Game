@@ -21,13 +21,13 @@ game_objectnode::~game_objectnode()
 		delete nextNode;
 }
 
-game_layer::game_layer()
+game_renderlayer::game_renderlayer()
 {
 	objectCount = 0;
 	objectList = NULL;
 }
 
-game_layer::~game_layer()
+game_renderlayer::~game_renderlayer()
 {
 	delete objectList;   // Deleting the first object node will destroy the whole linked list
 }
@@ -111,7 +111,7 @@ bool Game_Object::needsTextureUpdate()
 	return (m_needsTextureUpdate && m_textureUpdateFunc);
 }
 
-bool Game_Object::callEventFunction(Game_ObjectEventType type, SDL_Event* event)
+bool Game_Object::callEventFunction(Game_ObjectEventType type, SDL_Event& event)
 {
 	switch (type)
 	{
@@ -286,9 +286,11 @@ void Game_GUIObject::setBackgroundColor(SDL_Color color)
 	requestTextureUpdate();
 }
 
-void worldObjectTextureUpdate(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer)
+void guiObjectTextureUpdate(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer)
 {
 	Game_GUIObject* guiObject = (Game_GUIObject*) object;
+	if (guiObject->getText() == "")
+		return;
 
 	// Clear background surface
 	SDL_Color backgroundColor = guiObject->getBackgroundColor();
@@ -321,7 +323,7 @@ Game_GUIObject::Game_GUIObject(int x, int y, int w, int h) :
 	m_backgroundColor.b = 0;
 	m_backgroundColor.a = 0;
 
-	setTextureUpdate(worldObjectTextureUpdate);
+	setTextureUpdate(guiObjectTextureUpdate);
 }
 
 Game_WorldObject::Game_WorldObject(int worldX, int worldY, int worldWidth, int worldHeight) :

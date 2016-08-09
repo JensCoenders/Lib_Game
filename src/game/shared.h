@@ -1,5 +1,5 @@
 #ifndef GAME_SHARED_H
-#define GAME_SHARED_H 1
+#define GAME_SHARED_H
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -19,12 +19,14 @@ class Game_SharedMemory
 		static bool p_running;
 		static int p_targetFPS;
 		static bool p_useFPSCounter;
-		static float p_zoomScale;
+
+		// World (w)
+		static Game_Camera w_mainCamera;
+		static bool w_keyboardMovesCamera;
+		static float w_zoomScale;
 
 		// Rendering (r)
-		static Game_Point r_cameraCoords;
-		static Game_Rect r_cameraSize;
-		static Game_Layer* r_layers;
+		static Game_RenderLayer* r_renderLayers;
 		static int r_renderThreadID;
 
 		// SDL (s)
@@ -38,8 +40,8 @@ class Game_SharedMemory
 		static TTF_Font* m_guiFont;
 
 		// Functions
-		static bool startRenderingObject(Game_Object* object, unsigned int layerID);
-		static bool stopRenderingObject(Game_Object* object);
+		static bool addGameObject(Game_Object* object, unsigned int layerID);
+		static bool removeGameObject(Game_Object* object);
 
 };
 

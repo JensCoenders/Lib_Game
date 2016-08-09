@@ -24,20 +24,20 @@ typedef struct game_objectnode
 
 } Game_ObjectNode;
 
-typedef struct game_layer
+typedef struct game_renderlayer
 {
 	public:
 		int objectCount;
 		Game_ObjectNode* objectList;
 
-		game_layer();
-		~game_layer();
+		game_renderlayer();
+		~game_renderlayer();
 
-} Game_Layer;
+} Game_RenderLayer;
 
 typedef void (*Game_ObjectFUFunc)(Game_Object* object);
 typedef void (*Game_ObjectTUFunc)(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer);
-typedef void (*Game_ObjectEventFunc)(Game_Object* object, SDL_Event* eventData);
+typedef void (*Game_ObjectEventFunc)(Game_Object* object, SDL_Event& eventData);
 
 class Game_Object
 {
@@ -64,7 +64,7 @@ class Game_Object
 		bool needsTextureUpdate();
 
 		// Event functions
-		bool callEventFunction(Game_ObjectEventType type, SDL_Event* event);
+		bool callEventFunction(Game_ObjectEventType type, SDL_Event& event);
 		void setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function);
 
 		// Property functions

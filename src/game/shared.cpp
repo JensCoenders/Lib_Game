@@ -6,23 +6,23 @@
 bool Game_SharedMemory::p_running = false;
 int Game_SharedMemory::p_targetFPS = 60;
 bool Game_SharedMemory::p_useFPSCounter = true;
-float Game_SharedMemory::p_zoomScale = 1.0f;
 
-Game_Point Game_SharedMemory::r_cameraCoords = {0, 0};
-Game_Rect Game_SharedMemory::r_cameraSize = {0, 0};
-Game_Layer* Game_SharedMemory::r_layers = new Game_Layer[GAME_LAYER_AMOUNT];
+Game_Camera Game_SharedMemory::w_mainCamera = {{0, 0}, {1024, 576}, 0, 2};
+bool Game_SharedMemory::w_keyboardMovesCamera = true;
+float Game_SharedMemory::w_zoomScale = 1.0f;
+
+Game_RenderLayer* Game_SharedMemory::r_renderLayers = new Game_RenderLayer[GAME_LAYER_AMOUNT];
 int Game_SharedMemory::r_renderThreadID = -1;
 
 bool Game_SharedMemory::s_SDLInitialized = false;
 SDL_Renderer* Game_SharedMemory::s_mainRenderer = NULL;
 SDL_Window* Game_SharedMemory::s_window = NULL;
 
-Game_Object* Game_SharedMemory::m_keyboardInputObject = NULL;
+Game_Object* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
 Game_GUIObject* Game_SharedMemory::m_fpsObject = NULL;
 TTF_Font* Game_SharedMemory::m_guiFont = NULL;
 
-
-bool Game_SharedMemory::startRenderingObject(Game_Object* object, unsigned int layerID)
+bool Game_SharedMemory::addGameObject(Game_Object* object, unsigned int layerID)
 {
 	if (layerID >= GAME_LAYER_AMOUNT)
 	{
@@ -30,7 +30,7 @@ bool Game_SharedMemory::startRenderingObject(Game_Object* object, unsigned int l
 		return false;
 	}
 
-	Game_Layer* layer = &r_layers[layerID];
+	Game_RenderLayer* layer = &r_renderLayers[layerID];
 	Game_ObjectNode* newObjectNode = new Game_ObjectNode();
 	newObjectNode->object = object;
 	newObjectNode->nextNode = layer->objectList;
@@ -41,11 +41,11 @@ bool Game_SharedMemory::startRenderingObject(Game_Object* object, unsigned int l
 	return true;
 }
 
-bool Game_SharedMemory::stopRenderingObject(Game_Object* object)
+bool Game_SharedMemory::removeGameObject(Game_Object* object)
 {
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		Game_Layer* currentLayer = &r_layers[i];
+		Game_RenderLayer* currentLayer = &r_renderLayers[i];
 		Game_ObjectNode* currentObjectNode = currentLayer->objectList;
 		while (currentObjectNode != NULL)
 		{
@@ -68,6 +68,8 @@ bool Game_SharedMemory::stopRenderingObject(Game_Object* object)
 
 				return true;
 			}
+
+			currentObjectNode = currentObjectNode->nextNode;
 		}
 	}
 

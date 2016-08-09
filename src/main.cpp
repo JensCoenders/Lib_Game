@@ -1,19 +1,16 @@
 #include <iostream>
-#include "game.h"
+#include "testgame.h"
 
 using namespace std;
 
-int main(int argc, char** argv)
+int initialize()
 {
-	// TODO: Fix rendering freeze when window resizes
-
 	// Initialize SDL
 	cout << "[INFO] Initializing SDL... ";
+
 	int returnCode = game_initializeSDL("Jens Game V2.0");
 	if (!returnCode)
 		cout << "[OK]" << endl;
-	else if (returnCode == -1)
-		cout << "[WARN]" << endl << "[WARN] SDL has already been initialized!" << endl;
 	else
 	{
 		switch (returnCode)
@@ -30,22 +27,31 @@ int main(int argc, char** argv)
 				cout << "[CRIT]" << endl;
 				cout << "[CRIT] Failed to initialize SDL_ttf! Error: " << TTF_GetError() << endl;
 				break;
-			default:
-				cout << "[WARN]" << endl;
-				cout << "[WARN] Unrecognized return code: " << returnCode << endl;
-				break;
 		}
 
 		game_destroySDL();
 		return returnCode;
 	}
 
-	// Call game startup
-	game_run();
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	// TODO: Fix position glitch when window resizes
+
+	// Initialize
+	int result = initialize();
+	if (result)
+		return result;
+
+	// Run game
+	runTestGame();
 
 	// Cleanup
 	game_destroySDL();
-	cout << "[INFO] Cleanup complete";
+	delete[] Game_SharedMemory::r_renderLayers;
 
+	cout << "[INFO] Cleanup complete";
 	return 0;
 }

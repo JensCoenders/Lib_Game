@@ -6,19 +6,39 @@
 
 using namespace std;
 
-/* Control functions */
-
-// Rendering
 void game_renderThread();
 
-// Events
-void game_processKeyboardEvent(SDL_Event* event);
-void game_processMouseEvent(SDL_Event* event);
-void game_processWindowEvent(SDL_Event* event);
+void game_mainLoop()
+{
+	// Start render thread
+	game_startRenderThread();
 
-/* Control functions */
+	while (Game_SharedMemory::p_running)
+	{
+		// Wait and poll events
+		SDL_Event event;
+		if (SDL_WaitEvent(&event))
+		{
+			switch (event.type)
+			{
+				case SDL_KEYUP:
+				case SDL_KEYDOWN:
+					game_processKeyboardEvent(event);
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					game_processMouseEvent(event);
+					break;
+				case SDL_WINDOWEVENT:
+					game_processWindowEvent(event);
+					break;
+			}
+		}
+	}
 
-// Rendering
+	// Join render thread
+	game_joinRenderThread();
+}
+
 void game_startRenderThread()
 {
 	Game_SharedMemory::p_running = true;
@@ -26,13 +46,9 @@ void game_startRenderThread()
 	// Start thread
 	Game_SharedMemory::r_renderThreadID = game_startThread(game_renderThread);
 	if (Game_SharedMemory::r_renderThreadID < 0)
-	{
 		cout << "[ERR] Couldn't start render thread! Error code: " << Game_SharedMemory::r_renderThreadID << endl;
-	}
 	else
-	{
 		cout << "[INFO] Started render thread with ID " << Game_SharedMemory::r_renderThreadID << endl;
-	}
 }
 
 void game_joinRenderThread()
@@ -49,21 +65,37 @@ void game_renderThread()
 	// Setup FPS object
 	Game_GUIObject* fpsObject = new Game_GUIObject(0, 0, 100, 50);
 	fpsObject->setText("FPS: 0");
-	fpsObject->setTextColor({255, 255, 255, 0});
+	fpsObject->setTextColor( {255, 255, 255, 0});
 
 	Game_SharedMemory::m_fpsObject = fpsObject;
-	Game_SharedMemory::startRenderingObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
+	Game_SharedMemory::addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
+
+	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
+	int startTime = clock(), sleepTime = 16, frameCount = 0;
 
 	// Rendering loop
-	int startTime = clock(), sleepTime = 16, frameCount = 0;
 	while (Game_SharedMemory::p_running)
 	{
 		SDL_RenderClear(mainRenderer);
 
+		// Update camera
+		if (mainCamera.m_movementDirection)
+		{
+			if (mainCamera.m_movementDirection & 0x1)
+				mainCamera.m_position.y -= mainCamera.m_movementSpeed;
+			else if (mainCamera.m_movementDirection & 0x2)
+				mainCamera.m_position.y += mainCamera.m_movementSpeed;
+
+			if (mainCamera.m_movementDirection & 0x4)
+				mainCamera.m_position.x -= mainCamera.m_movementSpeed;
+			else if (mainCamera.m_movementDirection & 0x8)
+				mainCamera.m_position.x += mainCamera.m_movementSpeed;
+		}
+
 		// Draw all objects
 		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
 		{
-			Game_Layer* currentLayer = &Game_SharedMemory::r_layers[i];
+			Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
 			Game_ObjectNode* currentObjectNode = currentLayer->objectList;
 			while (currentObjectNode != NULL)
 			{
@@ -84,9 +116,8 @@ void game_renderThread()
 
 					// Create new surface
 					// TODO: Use m_textureSize
-					SDL_Surface* surface = SDL_CreateRGBSurface(0, currentObject->getSize().width,
-						currentObject->getSize().height, 32, GAME_SURFACE_RMASK, GAME_SURFACE_GMASK, GAME_SURFACE_BMASK,
-						GAME_SURFACE_AMASK);
+					SDL_Surface* surface = SDL_CreateRGBSurface(0, currentObject->getSize().width, currentObject->getSize().height, 32, GAME_SURFACE_RMASK, GAME_SURFACE_GMASK, GAME_SURFACE_BMASK,
+					GAME_SURFACE_AMASK);
 
 					if (!surface)
 						cout << "[WARN] Couldn't create surface for object rendering: " << SDL_GetError() << endl;
@@ -127,10 +158,14 @@ void game_renderThread()
 							destRect.h = currentObject->getSize().height;
 							break;
 						case OBJECT_TYPE_WORLD:
-							destRect.x = currentObject->getCoords().x - Game_SharedMemory::r_cameraCoords.x;
-							destRect.y = currentObject->getCoords().y - Game_SharedMemory::r_cameraCoords.y;
-							destRect.w = currentObject->getSize().width * Game_SharedMemory::p_zoomScale;
-							destRect.h = currentObject->getSize().height * Game_SharedMemory::p_zoomScale;
+							destRect.x = currentObject->getCoords().x - Game_SharedMemory::w_mainCamera.m_position.x;
+							destRect.y = currentObject->getCoords().y - Game_SharedMemory::w_mainCamera.m_position.y;
+
+							/* destRect.x *= Game_SharedMemory::w_zoomScale;
+							 destRect.y *= Game_SharedMemory::w_zoomScale; */
+							// TODO: Fix zooming system
+							destRect.w = currentObject->getSize().width * Game_SharedMemory::w_zoomScale;
+							destRect.h = currentObject->getSize().height * Game_SharedMemory::w_zoomScale;
 							break;
 					}
 
@@ -177,47 +212,6 @@ void game_renderThread()
 	}
 
 	cout << "[INFO] Stopped render thread" << endl;
-}
-
-// Events
-
-void game_processKeyboardEvent(SDL_Event* event)
-{
-	switch (event->key.keysym.sym)
-	{
-		case SDLK_F11:
-			if (event->type == SDL_KEYDOWN)
-			{
-				static int lastFlag = 0;
-				lastFlag = (lastFlag == 0 ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-
-				SDL_SetWindowFullscreen(Game_SharedMemory::s_window, lastFlag);
-			}
-			break;
-		default:
-			if (Game_SharedMemory::m_keyboardInputObject)
-			{
-				Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_KEY, event);
-			}
-			break;
-	}
-}
-
-void game_processMouseEvent(SDL_Event* event)
-{
-
-}
-
-void game_processWindowEvent(SDL_Event* event)
-{
-	switch (event->window.event)
-	{
-		case SDL_WINDOWEVENT_RESIZED:
-			break;
-		case SDL_WINDOWEVENT_CLOSE:
-			Game_SharedMemory::p_running = false;
-			break;
-	}
 }
 
 // SDL

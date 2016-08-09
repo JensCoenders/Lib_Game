@@ -1,3 +1,3 @@
 #include "game/control.h"
 
-void game_run();
+void runTestGame();
