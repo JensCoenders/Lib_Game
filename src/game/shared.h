@@ -23,7 +23,7 @@ class Game_SharedMemory
 		// World (w)
 		static Game_Camera w_mainCamera;
 		static bool w_keyboardMovesCamera;
-		static float w_zoomScale;
+		static double w_zoomScale;
 
 		// Rendering (r)
 		static Game_RenderLayer* r_renderLayers;
@@ -35,14 +35,21 @@ class Game_SharedMemory
 		static SDL_Window* s_window;
 
 		// Miscellaneous (m)
+		static string m_assetsFolder;
 		static Game_Object* m_keyboardInputObject;
-		static Game_GUIObject* m_fpsObject;
+		static Game_TextObject* m_fpsObject;
 		static TTF_Font* m_guiFont;
 
-		// Functions
+};
+
+class Game_Tools
+{
+	public:
 		static bool addGameObject(Game_Object* object, unsigned int layerID);
 		static bool removeGameObject(Game_Object* object);
 
+		static Game_Rect getTextSize(string text);
+		static Game_RenderEquipment* createRenderEquipment(int surfaceWidth, int surfaceHeight);
 };
 
 #endif

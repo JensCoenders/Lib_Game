@@ -2,21 +2,23 @@
 #include <sstream>
 #include "testgame.h"
 
-void obstacleCT(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer)
+SDL_Surface* obstacleCT(Game_Object* object, Game_RenderEquipment* equipment)
 {
 	SDL_Rect destRect;
 	destRect.x = 0;
 	destRect.y = 0;
-	destRect.w = surface->w;
-	destRect.h = surface->h;
+	destRect.w = equipment->surface->w;
+	destRect.h = equipment->surface->h;
 
 	int color = object->getIntProperty("color", 0xFF00);
 	int r = color & 0xFF;
 	int g = (color & 0xFF00) / 256;
 	int b = (color & 0xFF0000) / (256 * 256);
 
-	SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-	SDL_RenderFillRect(renderer, &destRect);
+	SDL_SetRenderDrawColor(equipment->softwareRenderer, r, g, b, 255);
+	SDL_RenderFillRect(equipment->softwareRenderer, &destRect);
+
+	return equipment->surface;
 }
 
 void playerFU(Game_Object* object)
@@ -30,37 +32,39 @@ void playerFU(Game_Object* object)
 
 void speedLabFU(Game_Object* object)
 {
-	static int lastMovementSpeed = 0;
+	int lastMovementSpeed = object->getIntProperty("lastMovementSpeed", 0);
+
 	if (lastMovementSpeed != Game_SharedMemory::w_mainCamera.m_movementSpeed)
 	{
 		lastMovementSpeed = Game_SharedMemory::w_mainCamera.m_movementSpeed;
+		object->setProperty("lastMovementSpeed", lastMovementSpeed);
 
 		ostringstream stream;
 		stream << "Camera movement speed: " << lastMovementSpeed;
-		((Game_GUIObject*) object)->setText(stream.str());
+		((Game_TextObject*) object)->setText(stream.str());
 	}
 }
 
 void zoomScaleLabFU(Game_Object* object)
 {
-	static float lastZoomScale = 0;
+	static double lastZoomScale = 0;
 	if (lastZoomScale != Game_SharedMemory::w_zoomScale)
 	{
 		lastZoomScale = Game_SharedMemory::w_zoomScale;
 
 		ostringstream stream;
 		stream << "Zoom scale: " << lastZoomScale;
-		((Game_GUIObject*) object)->setText(stream.str());
+		((Game_TextObject*) object)->setText(stream.str());
 	}
 }
 
 void runTestGame()
 {
 	// Create game objects
-	Game_WorldObject** obstacles = new Game_WorldObject*[5];
+	Game_TextObject** obstacles = new Game_TextObject*[5];
 	for (int i = 0; i < 5; i++)
 	{
-		Game_WorldObject* obstacle = new Game_WorldObject(i * 75 + 337, 200, 50, 50);
+		Game_TextObject* obstacle = new Game_TextObject(i * 75 + 337, 200, 50, 50, OBJECT_TYPE_WORLD);
 		obstacle->setTextureUpdate(obstacleCT);
 
 		int newColor = 0xEE;
@@ -70,23 +74,23 @@ void runTestGame()
 		obstacle->setProperty("color", newColor);
 
 		obstacles[i] = obstacle;
-		Game_SharedMemory::addGameObject(obstacle, GAME_LAYER_LEVEL_MID_1);
+		Game_Tools::addGameObject(obstacle, GAME_LAYER_LEVEL_MID_1);
 	}
 
-	Game_WorldObject* player = new Game_WorldObject(0, 0, 25, 25);
+	Game_Object* player = new Game_Object(0, 0, 25, 25, OBJECT_TYPE_WORLD);
 	player->setFrameUpdate(playerFU);
 	player->setTextureUpdate(obstacleCT);
 	player->setProperty("color", 0xFFFFFF);
 
-	Game_GUIObject* speedLab = new Game_GUIObject(0, 25, 275, 50);
+	Game_TextObject* speedLab = new Game_TextObject(0, 25, 275, 50, OBJECT_TYPE_GUI);
 	speedLab->setFrameUpdate(speedLabFU);
 
-	Game_GUIObject* zoomScaleLab = new Game_GUIObject(0, 50, 150, 50);
+	Game_TextObject* zoomScaleLab = new Game_TextObject(0, 50, 150, 50, OBJECT_TYPE_GUI);
 	zoomScaleLab->setFrameUpdate(zoomScaleLabFU);
 
-	Game_SharedMemory::addGameObject(player, GAME_LAYER_LEVEL_FOREGROUND);
-	Game_SharedMemory::addGameObject(speedLab, GAME_LAYER_GUI_FOREGROUND);
-	Game_SharedMemory::addGameObject(zoomScaleLab, GAME_LAYER_GUI_FOREGROUND);
+	Game_Tools::addGameObject(player, GAME_LAYER_LEVEL_FOREGROUND);
+	Game_Tools::addGameObject(speedLab, GAME_LAYER_GUI_FOREGROUND);
+	Game_Tools::addGameObject(zoomScaleLab, GAME_LAYER_GUI_FOREGROUND);
 
 	// Main loop
 	game_mainLoop();

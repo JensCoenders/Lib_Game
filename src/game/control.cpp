@@ -63,12 +63,12 @@ void game_renderThread()
 	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
 
 	// Setup FPS object
-	Game_GUIObject* fpsObject = new Game_GUIObject(0, 0, 100, 50);
+	Game_TextObject* fpsObject = new Game_TextObject(0, 0, 100, 50, OBJECT_TYPE_GUI);
 	fpsObject->setText("FPS: 0");
 	fpsObject->setTextColor( {255, 255, 255, 0});
 
 	Game_SharedMemory::m_fpsObject = fpsObject;
-	Game_SharedMemory::addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
+	Game_Tools::addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
 
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
 	int startTime = clock(), sleepTime = 16, frameCount = 0;
@@ -108,44 +108,36 @@ void game_renderThread()
 				if (currentObject->needsTextureUpdate())
 				{
 					// Destroy last rendered texture
-					if (currentObject->m_lastRenderedTexture)
+					if (currentObject->lastRenderedTexture)
 					{
-						SDL_DestroyTexture(currentObject->m_lastRenderedTexture);
-						currentObject->m_lastRenderedTexture = NULL;
+						SDL_DestroyTexture(currentObject->lastRenderedTexture);
+						currentObject->lastRenderedTexture = NULL;
 					}
 
-					// Create new surface
-					// TODO: Use m_textureSize
-					SDL_Surface* surface = SDL_CreateRGBSurface(0, currentObject->getSize().width, currentObject->getSize().height, 32, GAME_SURFACE_RMASK, GAME_SURFACE_GMASK, GAME_SURFACE_BMASK,
-					GAME_SURFACE_AMASK);
+					// Create render equipment
+					Game_RenderEquipment* equipment = Game_Tools::createRenderEquipment(currentObject->getSize().width,
+					        currentObject->getSize().height);
 
-					if (!surface)
-						cout << "[WARN] Couldn't create surface for object rendering: " << SDL_GetError() << endl;
-					else
+					// Prepare renderer
+					SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
+					SDL_RenderClear(equipment->softwareRenderer);
+
+					// Update object texture
+					SDL_Surface* surface = currentObject->textureUpdate(equipment);
+					if (surface)
 					{
-						SDL_Renderer* softwareRenderer = SDL_CreateSoftwareRenderer(surface);
-						if (!softwareRenderer)
-							cout << "[WARN] Couldn't create renderer for object rendering: " << SDL_GetError() << endl;
-						else
-						{
-							// Prepare renderer
-							SDL_SetRenderDrawColor(softwareRenderer, 0, 0, 0, 255);
-							SDL_RenderClear(softwareRenderer);
+						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
+						currentObject->satisfyTextureUpdate();
 
-							// Update object texture
-							currentObject->textureUpdate(surface, softwareRenderer);
-							currentObject->m_lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
-
-							currentObject->m_needsTextureUpdate = false;
-							SDL_DestroyRenderer(softwareRenderer);
-						}
-
-						SDL_FreeSurface(surface);
+						if (surface != equipment->surface)
+							SDL_FreeSurface(surface);
 					}
+
+					delete equipment;
 				}
 
 				// Draw object
-				if (currentObject->m_lastRenderedTexture)
+				if (currentObject->lastRenderedTexture)
 				{
 					SDL_Rect destRect;
 					switch (currentObject->getType())
@@ -170,7 +162,7 @@ void game_renderThread()
 					}
 
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
-						SDL_RenderCopy(mainRenderer, currentObject->m_lastRenderedTexture, NULL, &destRect);
+						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
 				}
 
 				currentObjectNode = currentObjectNode->nextNode;
@@ -245,7 +237,7 @@ int game_initializeSDL(string windowTitle)
 
 	// Load GUI font
 	// TODO: Create handler for assets folder
-	Game_SharedMemory::m_guiFont = TTF_OpenFont("assets\\arial.ttf", 20);
+	Game_SharedMemory::m_guiFont = TTF_OpenFont((Game_SharedMemory::m_assetsFolder + "/arial.ttf").c_str(), 25);
 	if (!Game_SharedMemory::m_guiFont)
 		return -4;
 

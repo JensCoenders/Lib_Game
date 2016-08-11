@@ -51,43 +51,32 @@ Game_Rect Game_Object::getSize()
 void Game_Object::setSize(int width, int height)
 {
 	if (width > 0)
-	{
 		m_size.width = width;
-		m_textureSize.width = width;
-	}
 
 	if (height > 0)
-	{
 		m_size.height = height;
-		m_textureSize.height = height;
-	}
 }
 
 void Game_Object::frameUpdate()
 {
 	if (m_frameUpdateFunc)
-	{
 		m_frameUpdateFunc(this);
-	}
 }
 
 void Game_Object::setFrameUpdate(Game_ObjectFUFunc function)
 {
 	if (!function)
-	{
 		cout << "[WARN] Attempting to set NULL function as FU function!" << endl;
-		return;
-	}
-
-	m_frameUpdateFunc = function;
+	else
+		m_frameUpdateFunc = function;
 }
 
-void Game_Object::textureUpdate(SDL_Surface* surface, SDL_Renderer* renderer)
+SDL_Surface* Game_Object::textureUpdate(Game_RenderEquipment* equipment)
 {
 	if (!m_textureUpdateFunc)
-		return;
+		return NULL;
 
-	m_textureUpdateFunc(this, surface, renderer);
+	return m_textureUpdateFunc(this, equipment);
 }
 
 void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
@@ -101,14 +90,19 @@ void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
 	m_textureUpdateFunc = function;
 }
 
+bool Game_Object::needsTextureUpdate()
+{
+	return (m_needsTextureUpdate && m_textureUpdateFunc);
+}
+
 void Game_Object::requestTextureUpdate()
 {
 	m_needsTextureUpdate = true;
 }
 
-bool Game_Object::needsTextureUpdate()
+void Game_Object::satisfyTextureUpdate()
 {
-	return (m_needsTextureUpdate && m_textureUpdateFunc);
+	m_needsTextureUpdate = false;
 }
 
 bool Game_Object::callEventFunction(Game_ObjectEventType type, SDL_Event& event)
@@ -217,16 +211,14 @@ Game_ObjectProperty* Game_Object::findPropertyByName(string name)
 	return NULL;
 }
 
-Game_Object::Game_Object(int x, int y, int w, int h)
+Game_Object::Game_Object(int x, int y, int w, int h, Game_ObjectType type)
 {
+	lastRenderedTexture = NULL;
+
 	m_needsTextureUpdate = true;
-	m_textureSize.width = 0;
-	m_textureSize.height = 0;
-	m_lastRenderedTexture = NULL;
 
 	m_frameUpdateFunc = NULL;
 	m_textureUpdateFunc = NULL;
-
 	m_keyTypedFunc = NULL;
 	m_mouseClickedFunc = NULL;
 
@@ -234,8 +226,7 @@ Game_Object::Game_Object(int x, int y, int w, int h)
 
 	static unsigned int lastID = 0;
 	m_ID = lastID++;
-
-	m_objectType = OBJECT_TYPE_NORMAL;
+	m_objectType = type;
 
 	setCoords(x, y);
 	setSize(w, h);
@@ -253,81 +244,79 @@ Game_Object::~Game_Object()
 	}
 }
 
-string Game_GUIObject::getText()
+string Game_TextObject::getText()
 {
 	return m_text;
 }
 
-void Game_GUIObject::setText(string text)
+SDL_Color Game_TextObject::getTextColor()
+{
+	return m_textColor;
+}
+
+void Game_TextObject::setText(string text)
 {
 	m_text = text;
 	requestTextureUpdate();
 }
 
-SDL_Color Game_GUIObject::getTextColor()
-{
-	return m_textColor;
-}
-
-void Game_GUIObject::setTextColor(SDL_Color color)
+void Game_TextObject::setTextColor(SDL_Color color)
 {
 	m_textColor = color;
 	requestTextureUpdate();
 }
 
-SDL_Color Game_GUIObject::getBackgroundColor()
+SDL_Color Game_TextObject::getBackgroundColor()
 {
 	return m_backgroundColor;
 }
 
-void Game_GUIObject::setBackgroundColor(SDL_Color color)
+void Game_TextObject::setBackgroundColor(SDL_Color color)
 {
 	m_backgroundColor = color;
 	requestTextureUpdate();
 }
 
-void guiObjectTextureUpdate(Game_Object* object, SDL_Surface* surface, SDL_Renderer* renderer)
+SDL_Surface* Game_TextObject::renderText()
 {
-	Game_GUIObject* guiObject = (Game_GUIObject*) object;
-	if (guiObject->getText() == "")
-		return;
-
-	// Clear background surface
-	SDL_Color backgroundColor = guiObject->getBackgroundColor();
-	SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
-	SDL_RenderClear(renderer);
+	if (m_text == "")
+		return NULL;
 
 	// Create text
-	SDL_Color textColor = guiObject->getTextColor();
-	SDL_Surface* textSurface = TTF_RenderText_Blended(Game_SharedMemory::m_guiFont, guiObject->getText().c_str(), textColor);
-
-	SDL_Rect destRect = {0, 0, textSurface->w, textSurface->h};
-	SDL_BlitSurface(textSurface, NULL, surface, &destRect);
-
-	// Free resources
-	SDL_FreeSurface(textSurface);
+	SDL_Surface* textSurface = TTF_RenderText_Blended(Game_SharedMemory::m_guiFont, m_text.c_str(), m_textColor);
+	return textSurface;
 }
 
-Game_GUIObject::Game_GUIObject(int x, int y, int w, int h) :
-		Game_Object(x, y, w, h)
+SDL_Surface* textObjectTextureUpdate(Game_Object* object, Game_RenderEquipment* equipment)
 {
+	Game_TextObject* textObject = (Game_TextObject*) object;
+	SDL_Surface* textSurface = textObject->renderText();
+
+	if (!textSurface)
+		return NULL;
+	else if (textObject->autoSize)
+		textObject->setSize(textSurface->w * textObject->textScaling, textSurface->h * textObject->textScaling);
+
+	return textSurface;
+}
+
+Game_TextObject::Game_TextObject(int x, int y, int w, int h, Game_ObjectType type) :
+		Game_Object(x, y, w, h, type)
+{
+	textScaling = 1.0;
+	autoSize = true;
+
 	m_text = "";
-	m_objectType = OBJECT_TYPE_GUI;
 
 	m_textColor.r = 255;
 	m_textColor.g = 255;
 	m_textColor.b = 255;
 	m_textColor.a = 0;
+
 	m_backgroundColor.r = 0;
 	m_backgroundColor.g = 0;
 	m_backgroundColor.b = 0;
 	m_backgroundColor.a = 0;
 
-	setTextureUpdate(guiObjectTextureUpdate);
-}
-
-Game_WorldObject::Game_WorldObject(int worldX, int worldY, int worldWidth, int worldHeight) :
-		Game_Object(worldX, worldY, worldWidth, worldHeight)
-{
-	m_objectType = OBJECT_TYPE_WORLD;
+	setTextureUpdate(textObjectTextureUpdate);
 }

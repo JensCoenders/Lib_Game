@@ -86,15 +86,6 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 				else
 					Game_SharedMemory::w_mainCamera.m_movementSpeed += 1.0;
 				break;
-			case SDL_SCANCODE_F11:
-				if (event.type == SDL_KEYDOWN)
-				{
-					static int fullScreen = 0;
-					fullScreen = (!fullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-
-					SDL_SetWindowFullscreen(Game_SharedMemory::s_window, fullScreen);
-				}
-				break;
 			default:
 				keyProcessed = false;
 				break;
@@ -136,6 +127,15 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 				Game_SharedMemory::w_mainCamera.m_position.y = 0;
 				Game_SharedMemory::w_mainCamera.m_movementSpeed = 2;
 				Game_SharedMemory::w_zoomScale = 1;
+				break;
+			case SDL_SCANCODE_F11:
+				if (event.type == SDL_KEYDOWN)
+				{
+					static int fullScreen = 0;
+					fullScreen = (!fullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+
+					SDL_SetWindowFullscreen(Game_SharedMemory::s_window, fullScreen);
+				}
 				break;
 			default:
 				keyProcessed = false;

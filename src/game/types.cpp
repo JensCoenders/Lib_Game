@@ -1,5 +1,9 @@
+#include <SDL.h>
+#include <iostream>
 #include <sstream>
 #include "types.h"
+
+using namespace std;
 
 string game_point::toString()
 {
@@ -35,4 +39,19 @@ game_objectproperty::~game_objectproperty()
 
 	if (m_stringValue)
 		delete m_stringValue;
+}
+
+game_renderequipment::game_renderequipment(SDL_Renderer* renderer, SDL_Surface* surface)
+{
+	this->softwareRenderer = renderer;
+	this->surface = surface;
+}
+
+game_renderequipment::~game_renderequipment()
+{
+	if (surface)
+		SDL_FreeSurface(surface);
+
+	if (softwareRenderer)
+		SDL_DestroyRenderer(softwareRenderer);
 }

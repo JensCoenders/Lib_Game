@@ -90,4 +90,15 @@ typedef struct game_objectproperty
 
 } Game_ObjectProperty;
 
+typedef struct game_renderequipment
+{
+	public:
+		SDL_Renderer* softwareRenderer;
+		SDL_Surface* surface;
+
+		game_renderequipment(SDL_Renderer* renderer, SDL_Surface* surface);
+		~game_renderequipment();
+
+} Game_RenderEquipment;
+
 #endif
