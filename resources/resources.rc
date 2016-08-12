@@ -1,0 +1,3 @@
+#define AppIcon 101
+
+AppIcon ICON "../resources/icon.ico"

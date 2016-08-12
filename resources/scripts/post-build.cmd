@@ -1,0 +1,6 @@
+@echo off
+echo Copying DLL files...
+xcopy /Y /Q ..\resources\dll .
+echo Copying asset files...
+mkdir .\assets > nul
+xcopy /Y /Q /S ..\resources\assets .\assets
