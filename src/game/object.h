@@ -35,21 +35,32 @@ typedef struct game_renderlayer
 
 } Game_RenderLayer;
 
-typedef void (*Game_ObjectFUFunc)(Game_Object* object);
-typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object* object, Game_RenderEquipment* equipment);
-typedef void (*Game_ObjectEventFunc)(Game_Object* object, SDL_Event& eventData);
+typedef void (*Game_ObjectFUFunc)(Game_Object& object);
+typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipment* equipment);
 
 class Game_Object
 {
 	public:
+		// Render vars
+		Game_Point realCoords;
+		Game_Rect realSize;
+
 		// Texture vars
 		SDL_Texture* lastRenderedTexture;
 
-		// World funcs
-		Game_Point getCoords();
-		Game_Rect getSize();
-		void setCoords(int x, int y);
-		void setSize(int width, int height);
+		// Color funcs
+		SDL_Color getBackgroundColor();
+		void setBackgroundColor(SDL_Color color);
+
+		// Misc funcs
+		unsigned int getID();
+		Game_ObjectType getType();
+		void setType(Game_ObjectType type);
+
+		// Texture update funcs
+		bool needsTextureUpdate();
+		void requestTextureUpdate();
+		void satisfyTextureUpdate();
 
 		// Update funcs
 		void frameUpdate();
@@ -57,10 +68,51 @@ class Game_Object
 		void setFrameUpdate(Game_ObjectFUFunc function);
 		void setTextureUpdate(Game_ObjectTUFunc function);
 
-		// Texture update funcs
-		bool needsTextureUpdate();
-		void requestTextureUpdate();
-		void satisfyTextureUpdate();
+		// World funcs
+		Game_Point getCoords();
+		Game_Rect getSize();
+		void setCoords(int x, int y);
+		void setSize(int width, int height);
+
+		Game_Object(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
+		virtual ~Game_Object() {}
+	protected:
+		// Color vars
+		SDL_Color m_backgroundColor;
+
+		// Misc vars
+		unsigned int m_ID;
+		Game_ObjectType m_objectType;
+
+		// Property vars
+		Game_ObjectProperty* m_properties;
+
+		// Texture vars
+		bool m_needsTextureUpdate;
+
+		// Update vars
+		Game_ObjectFUFunc m_frameUpdateFunc;
+		Game_ObjectTUFunc m_textureUpdateFunc;
+
+		// World vars
+		Game_Point m_coords;
+		Game_Rect m_size;
+
+};
+
+class Game_AdvancedObject;
+typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, SDL_Event& eventData);
+
+class Game_AdvancedObject : public Game_Object
+{
+	public:
+		// Event vars
+		Game_ObjectEventFunc m_keyTypedFunc;
+		Game_ObjectEventFunc m_mouseClickedFunc;
+
+		// Text vars
+		double textScaling;
+		bool autoSize;
 
 		// Event funcs
 		bool callEventFunction(Game_ObjectEventType type, SDL_Event& event);
@@ -74,41 +126,27 @@ class Game_Object
 		template<typename T>
 		void setProperty(string name, T value);
 
-		// Misc functions
-		unsigned int getID();
-		Game_ObjectType getType();
-		void setType(Game_ObjectType type);
+		// Text funcs
+		string getText();
+		SDL_Color getTextColor();
+		void setText(string text);
+		void setTextColor(SDL_Color color);
 
-		Game_Object(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
-		~Game_Object();
-	protected:
-		// World vars
-		Game_Point m_coords;
-		Game_Rect m_size;
+		SDL_Surface* renderText();
 
-		// Texture vars
-		bool m_needsTextureUpdate;
-
-		// Update & event vars
-		Game_ObjectFUFunc m_frameUpdateFunc;
-		Game_ObjectTUFunc m_textureUpdateFunc;
-		Game_ObjectEventFunc m_keyTypedFunc;
-		Game_ObjectEventFunc m_mouseClickedFunc;
-
-		// Property vars
-		Game_ObjectProperty* m_properties;
-
-		// Misc vars
-		unsigned int m_ID;
-		Game_ObjectType m_objectType;
+		Game_AdvancedObject(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
+		~Game_AdvancedObject();
+	private:
+		// Text vars
+		string m_text;
+		SDL_Color m_textColor;
 
 		// Misc funcs
 		Game_ObjectProperty* findPropertyByName(string name);
-
 };
 
 template<typename T>
-void Game_Object::setProperty(string name, T value)
+void Game_AdvancedObject::setProperty(string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));
@@ -144,30 +182,5 @@ void Game_Object::setProperty(string name, T value)
 		*currentProperty->m_stringValue = value;
 	}
 }
-
-class Game_TextObject : public Game_Object
-{
-	public:
-		// Text vars
-		double textScaling;
-		bool autoSize;
-
-		// Text funcs
-		string getText();
-		void setText(string text);
-		SDL_Surface* renderText();
-
-		// Color funcs
-		SDL_Color getTextColor();
-		SDL_Color getBackgroundColor();
-		void setTextColor(SDL_Color color);
-		void setBackgroundColor(SDL_Color color);
-
-		Game_TextObject(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
-	private:
-		string m_text;
-		SDL_Color m_textColor;
-		SDL_Color m_backgroundColor;
-};
 
 #endif

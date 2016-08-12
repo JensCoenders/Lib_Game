@@ -36,8 +36,8 @@ class Game_SharedMemory
 
 		// Miscellaneous (m)
 		static string m_assetsFolder;
-		static Game_Object* m_keyboardInputObject;
-		static Game_TextObject* m_fpsObject;
+		static Game_AdvancedObject* m_keyboardInputObject;
+		static Game_AdvancedObject* m_fpsObject;
 		static TTF_Font* m_guiFont;
 
 };
@@ -50,6 +50,27 @@ class Game_Tools
 
 		static Game_Rect getTextSize(string text);
 		static Game_RenderEquipment* createRenderEquipment(int surfaceWidth, int surfaceHeight);
+
+		template<typename ... Args>
+		static string getAssetPath(string name, Args&... subDirectories);
 };
+
+template<typename T>
+string combineStrings(T& firstString)
+{
+	return firstString;
+}
+
+template<typename T, typename ... Args>
+string combineStrings(T& firstString, Args&... args)
+{
+	return firstString + "\\" + combineStrings(args...);
+}
+
+template<typename ... Args>
+string Game_Tools::getAssetPath(string name, Args&... subDirectories)
+{
+	return Game_SharedMemory::m_assetsFolder + "\\" + combineStrings(subDirectories...) + "\\" + name;
+}
 
 #endif

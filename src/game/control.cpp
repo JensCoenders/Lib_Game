@@ -25,6 +25,7 @@ void game_mainLoop()
 				case SDL_KEYDOWN:
 					game_processKeyboardEvent(event);
 					break;
+				case SDL_MOUSEBUTTONUP:
 				case SDL_MOUSEBUTTONDOWN:
 					game_processMouseEvent(event);
 					break;
@@ -63,12 +64,12 @@ void game_renderThread()
 	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
 
 	// Setup FPS object
-	Game_TextObject* fpsObject = new Game_TextObject(0, 0, 100, 50, OBJECT_TYPE_GUI);
-	fpsObject->setText("FPS: 0");
-	fpsObject->setTextColor( {255, 255, 255, 0});
+	Game_AdvancedObject fpsObject(0, 0, 100, 50, OBJECT_TYPE_GUI);
+	fpsObject.setText("FPS: 0");
+	fpsObject.setTextColor( {255, 255, 255, 0});
 
-	Game_SharedMemory::m_fpsObject = fpsObject;
-	Game_Tools::addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
+	Game_SharedMemory::m_fpsObject = &fpsObject;
+	Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
 
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
 	int startTime = clock(), sleepTime = 16, frameCount = 0;
@@ -161,6 +162,11 @@ void game_renderThread()
 							break;
 					}
 
+					currentObject->realCoords.x = destRect.x;
+					currentObject->realCoords.y = destRect.y;
+					currentObject->realSize.width = destRect.w;
+					currentObject->realSize.height = destRect.h;
+
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
 						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
 				}
@@ -190,10 +196,8 @@ void game_renderThread()
 			// Update sleep time if necessary
 			if (Game_SharedMemory::p_targetFPS > 0)
 			{
-				if (framesPerSecond < Game_SharedMemory::p_targetFPS - 5 || framesPerSecond > Game_SharedMemory::p_targetFPS + 5)
-				{
+				if (framesPerSecond < Game_SharedMemory::p_targetFPS - 2 || framesPerSecond > Game_SharedMemory::p_targetFPS + 2)
 					sleepTime *= framesPerSecond / Game_SharedMemory::p_targetFPS;
-				}
 			}
 
 			startTime = newTime;
@@ -236,8 +240,7 @@ int game_initializeSDL(string windowTitle)
 	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
 
 	// Load GUI font
-	// TODO: Create handler for assets folder
-	Game_SharedMemory::m_guiFont = TTF_OpenFont((Game_SharedMemory::m_assetsFolder + "/arial.ttf").c_str(), 25);
+	Game_SharedMemory::m_guiFont = TTF_OpenFont(Game_Tools::getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
 	if (!Game_SharedMemory::m_guiFont)
 		return -4;
 

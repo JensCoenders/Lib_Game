@@ -42,8 +42,8 @@ typedef enum game_objecttype
 
 typedef enum game_objecteventtype
 {
-	EVENT_TYPE_KEY,
-	EVENT_TYPE_MOUSE
+	EVENT_TYPE_TYPED,
+	EVENT_TYPE_CLICKED
 
 } Game_ObjectEventType;
 

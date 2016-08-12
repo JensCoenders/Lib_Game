@@ -52,9 +52,7 @@ int main(int argc, char** argv)
 	{
 		string argument = argv[i];
 		for (unsigned int j = 0; j < argument.size(); j++)
-		{
 			argument[j] = tolower(argument[j]);
-		}
 
 		if (argument == "--assets" && (i + 1) < argc)
 		{

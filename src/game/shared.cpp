@@ -9,7 +9,7 @@ bool Game_SharedMemory::p_useFPSCounter = true;
 
 Game_Camera Game_SharedMemory::w_mainCamera = { {0, 0}, {1024, 576}, 0, 2};
 bool Game_SharedMemory::w_keyboardMovesCamera = true;
-double Game_SharedMemory::w_zoomScale = 1.0f;
+double Game_SharedMemory::w_zoomScale = 1.0;
 
 Game_RenderLayer* Game_SharedMemory::r_renderLayers = new Game_RenderLayer[GAME_LAYER_AMOUNT];
 int Game_SharedMemory::r_renderThreadID = -1;
@@ -18,9 +18,9 @@ bool Game_SharedMemory::s_SDLInitialized = false;
 SDL_Renderer* Game_SharedMemory::s_mainRenderer = NULL;
 SDL_Window* Game_SharedMemory::s_window = NULL;
 
-string Game_SharedMemory::m_assetsFolder = "../assets";
-Game_Object* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
-Game_TextObject* Game_SharedMemory::m_fpsObject = NULL;
+string Game_SharedMemory::m_assetsFolder = "assets";
+Game_AdvancedObject* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
+Game_AdvancedObject* Game_SharedMemory::m_fpsObject = NULL;
 TTF_Font* Game_SharedMemory::m_guiFont = NULL;
 
 bool Game_Tools::addGameObject(Game_Object* object, unsigned int layerID)
@@ -53,14 +53,10 @@ bool Game_Tools::removeGameObject(Game_Object* object)
 			if (currentObjectNode->object->getID() == object->getID())
 			{
 				if (currentObjectNode->prevNode != NULL)
-				{
 					currentObjectNode->prevNode->nextNode = currentObjectNode->nextNode;
-				}
 
 				if (currentObjectNode->nextNode != NULL)
-				{
 					currentObjectNode->nextNode->prevNode = currentObjectNode->prevNode;
-				}
 
 				currentObjectNode->prevNode = NULL;
 				currentObjectNode->nextNode = NULL;

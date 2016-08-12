@@ -159,14 +159,36 @@ void game_processKeyboardEvent(SDL_Event& event)
 
 	// Forward event to input object
 	if (Game_SharedMemory::m_keyboardInputObject)
-	{
-		Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_KEY, event);
-	}
+		Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_TYPED, event);
 }
 
 void game_processMouseEvent(SDL_Event& event)
 {
+	// Find object which was clicked
+	int clickedX = event.button.x;
+	int clickedY = event.button.y;
+	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
+	{
+		Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
+		Game_ObjectNode* currentObjectNode = currentLayer->objectList;
+		while (currentObjectNode != NULL)
+		{
+			Game_AdvancedObject* object = dynamic_cast<Game_AdvancedObject*>(currentObjectNode->object);
+			if (object)
+			{
+				if ((clickedX >= object->realCoords.x) && (clickedX <= (object->realCoords.x + object->realSize.width)))
+				{
+					if ((clickedY >= object->realCoords.y) && (clickedY <= (object->realCoords.y + object->realSize.height)))
+					{
+						((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, event);
+						return;
+					}
+				}
+			}
 
+			currentObjectNode = currentObjectNode->nextNode;
+		}
+	}
 }
 
 void game_processWindowEvent(SDL_Event& event)
