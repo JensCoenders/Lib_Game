@@ -1,5 +1,5 @@
 #ifndef GAME_THREAD_H
-#define GAME_THREAD_H 1
+#define GAME_THREAD_H
 
 #define GAME_MAX_THREADS 8
 

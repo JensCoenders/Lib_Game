@@ -1,25 +1,9 @@
 #include <iostream>
-#include <SDL_ttf.h>
-#include "object.h"
+
 #include "shared.h"
+#include "object.h"
 
 using namespace std;
-
-game_objectnode::game_objectnode()
-{
-	prevNode = NULL;
-	nextNode = NULL;
-	object = NULL;
-}
-
-game_objectnode::~game_objectnode()
-{
-	if (prevNode != NULL)
-		delete prevNode;
-
-	if (nextNode != NULL)
-		delete nextNode;
-}
 
 game_renderlayer::game_renderlayer()
 {
@@ -32,9 +16,19 @@ game_renderlayer::~game_renderlayer()
 	delete objectList;   // Deleting the first object node will destroy the whole linked list
 }
 
+unsigned int Game_Object::getID()
+{
+	return m_ID;
+}
+
 SDL_Color Game_Object::getBackgroundColor()
 {
 	return m_backgroundColor;
+}
+
+string Game_Object::getImageTexturePath()
+{
+	return m_imageTexturePath;
 }
 
 void Game_Object::setBackgroundColor(SDL_Color color)
@@ -43,19 +37,10 @@ void Game_Object::setBackgroundColor(SDL_Color color)
 	requestTextureUpdate();
 }
 
-unsigned int Game_Object::getID()
+void Game_Object::setImageTexture(string textureName)
 {
-	return m_ID;
-}
-
-Game_ObjectType Game_Object::getType()
-{
-	return m_objectType;
-}
-
-void Game_Object::setType(Game_ObjectType type)
-{
-	m_objectType = type;
+	m_imageTexturePath = Game_Tools::getAssetPath(textureName, "textures");
+	requestTextureUpdate();
 }
 
 bool Game_Object::needsTextureUpdate()
@@ -81,18 +66,21 @@ void Game_Object::frameUpdate()
 
 SDL_Surface* Game_Object::textureUpdate(Game_RenderEquipment* equipment)
 {
-	if (!m_textureUpdateFunc)
-		return NULL;
+	if (m_textureUpdateFunc)
+		return m_textureUpdateFunc(*this, equipment);
 
-	return m_textureUpdateFunc(*this, equipment);
+	return NULL;
 }
 
 void Game_Object::setFrameUpdate(Game_ObjectFUFunc function)
 {
 	if (!function)
+	{
 		cout << "[WARN] Attempting to set NULL function as FU function!" << endl;
-	else
-		m_frameUpdateFunc = function;
+		return;
+	}
+
+	m_frameUpdateFunc = function;
 }
 
 void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
@@ -106,39 +94,22 @@ void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
 	m_textureUpdateFunc = function;
 }
 
-Game_Point Game_Object::getCoords()
+Game_Object::Game_Object(int x, int y, int w, int h, bool isStatic)
 {
-	return m_coords;
-}
-
-void Game_Object::setCoords(int x, int y)
-{
-	m_coords.x = x;
-	m_coords.y = y;
-}
-
-Game_Rect Game_Object::getSize()
-{
-	return m_size;
-}
-
-void Game_Object::setSize(int width, int height)
-{
-	if (width > 0)
-		m_size.width = width;
-
-	if (height > 0)
-		m_size.height = height;
-}
-
-Game_Object::Game_Object(int x, int y, int w, int h, Game_ObjectType type)
-{
-	realCoords.x = 0;
-	realCoords.y = 0;
-	realSize.width = 0;
-	realSize.height = 0;
+	this->isStatic = isStatic;
 
 	lastRenderedTexture = NULL;
+
+	worldCoords.x = x;
+	worldCoords.y = y;
+	worldSize.width = w;
+	worldSize.height = h;
+
+	m_backgroundColor.r = 0;
+	m_backgroundColor.g = 0;
+	m_backgroundColor.b = 0;
+	m_backgroundColor.a = 255;
+	m_imageTexturePath = "";
 
 	m_needsTextureUpdate = true;
 
@@ -149,10 +120,75 @@ Game_Object::Game_Object(int x, int y, int w, int h, Game_ObjectType type)
 
 	static unsigned int lastID = 0;
 	m_ID = lastID++;
-	m_objectType = type;
+}
 
-	setCoords(x, y);
-	setSize(w, h);
+Game_Object::~Game_Object()
+{
+}
+
+string Game_TextObject::getText()
+{
+	return m_text;
+}
+
+SDL_Color Game_TextObject::getTextColor()
+{
+	return m_textColor;
+}
+
+void Game_TextObject::setText(string text)
+{
+	m_text = text;
+	requestTextureUpdate();
+}
+
+void Game_TextObject::setTextColor(SDL_Color color)
+{
+	m_textColor = color;
+	requestTextureUpdate();
+}
+
+SDL_Surface* Game_TextObject::renderText()
+{
+	if (m_text == "")
+		return NULL;
+
+	// Create text
+	SDL_Surface* textSurface = TTF_RenderText_Blended(Game_SharedMemory::m_guiFont, m_text.c_str(), m_textColor);
+	return textSurface;
+}
+
+SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment)
+{
+	Game_AdvancedObject& textObject = (Game_AdvancedObject&) object;
+	SDL_Surface* textSurface = textObject.renderText();
+
+	if (!textSurface)
+		return NULL;
+	else if (textObject.autoSize)
+	{
+		// TODO: Fix ugly text font due to scaling
+		textObject.worldSize.width = textSurface->w * textObject.textScaling;
+		textObject.worldSize.height = textSurface->h * textObject.textScaling;
+	}
+
+	return textSurface;
+}
+
+Game_TextObject::Game_TextObject(int x, int y, int w, int h, bool isStatic) :
+		Game_Object(x, y, w, h, isStatic)
+{
+	textScaling = 1.0;
+	autoSize = true;
+
+	m_text = "";
+
+	m_textColor.r = 0;
+	m_textColor.g = 0;
+	m_textColor.b = 0;
+	m_textColor.a = 255;
+
+	setTextureUpdate(textObjectTextureUpdate);
 }
 
 bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, SDL_Event& event)
@@ -160,15 +196,15 @@ bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, SDL_Event
 	switch (type)
 	{
 		case EVENT_TYPE_TYPED:
-			if (m_keyTypedFunc)
-				m_keyTypedFunc(*this, event);
+			if (keyTypedFunc)
+				keyTypedFunc(*this, event);
 			else
 				return false;
 
 			break;
 		case EVENT_TYPE_CLICKED:
-			if (m_mouseClickedFunc)
-				m_mouseClickedFunc(*this, event);
+			if (mouseClickedFunc)
+				mouseClickedFunc(*this, event);
 			else
 				return false;
 
@@ -190,144 +226,81 @@ void Game_AdvancedObject::setEventFunction(Game_ObjectEventType type, Game_Objec
 	switch (type)
 	{
 		case EVENT_TYPE_TYPED:
-			m_keyTypedFunc = function;
+			keyTypedFunc = function;
 			break;
 		case EVENT_TYPE_CLICKED:
-			m_mouseClickedFunc = function;
+			mouseClickedFunc = function;
 			break;
 	}
 }
 
 int Game_AdvancedObject::getIntProperty(string name, int defaultValue)
 {
-	Game_ObjectProperty* currentProperty = findPropertyByName(name);
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
 
 	// Return default value if property was not found
-	if (!currentProperty || !currentProperty->m_intValue)
+	if (!currentProperty)
 		return defaultValue;
 
-	return *currentProperty->m_intValue;
+	return currentProperty->value->getIntValue();
 }
 
 bool Game_AdvancedObject::getBoolProperty(string name, bool defaultValue)
 {
-	Game_ObjectProperty* currentProperty = findPropertyByName(name);
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
 
 	// Return default value if property was not found
-	if (!currentProperty || !currentProperty->m_boolValue)
+	if (!currentProperty)
 		return defaultValue;
 
-	return *currentProperty->m_boolValue;
+	return currentProperty->value->getBoolValue();
 }
 
 string Game_AdvancedObject::getStringProperty(string name, string defaultValue)
 {
-	Game_ObjectProperty* currentProperty = findPropertyByName(name);
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
 
 	// Return default value if property was not found
-	if (!currentProperty || !currentProperty->m_stringValue)
+	if (!currentProperty)
 		return defaultValue;
 
-	return *currentProperty->m_stringValue;
+	return currentProperty->value->getStringValue();
 }
 
-string Game_AdvancedObject::getText()
-{
-	return m_text;
-}
-
-SDL_Color Game_AdvancedObject::getTextColor()
-{
-	return m_textColor;
-}
-
-void Game_AdvancedObject::setText(string text)
-{
-	m_text = text;
-	requestTextureUpdate();
-}
-
-void Game_AdvancedObject::setTextColor(SDL_Color color)
-{
-	m_textColor = color;
-	requestTextureUpdate();
-}
-
-SDL_Surface* Game_AdvancedObject::renderText()
-{
-	if (m_text == "")
-		return NULL;
-
-	// Create text
-	SDL_Surface* textSurface = TTF_RenderText_Blended(Game_SharedMemory::m_guiFont, m_text.c_str(), m_textColor);
-	return textSurface;
-}
-
-SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment)
-{
-	Game_AdvancedObject& textObject = (Game_AdvancedObject&) object;
-	SDL_Surface* textSurface = textObject.renderText();
-
-	if (!textSurface)
-		return NULL;
-	else if (textObject.autoSize)
-		// TODO: Fix ugly text font due to scaling
-		textObject.setSize(textSurface->w * textObject.textScaling, textSurface->h * textObject.textScaling);
-
-	return textSurface;
-}
-
-Game_ObjectProperty* Game_AdvancedObject::findPropertyByName(string name)
+LinkedListNode<Game_ObjectProperty>* Game_AdvancedObject::findPropertyByName(string name)
 {
 	// Convert name to lowercase
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));
 
 	// Get matching property
-	Game_ObjectProperty* currentProperty = m_properties;
-	while (currentProperty)
+	LinkedListNode<Game_ObjectProperty>* currentNode = m_properties;
+	while (currentNode)
 	{
-		if (currentProperty->m_name == name)
-			return currentProperty;
+		if (currentNode->value->name == name)
+			return currentNode;
 
-		currentProperty = currentProperty->m_nextProperty;
+		currentNode = currentNode->nextNode;
 	}
 
 	return NULL;
 }
 
-Game_AdvancedObject::Game_AdvancedObject(int x, int y, int w, int h, Game_ObjectType type) :
-		Game_Object(x, y, w, h, type)
+Game_AdvancedObject::Game_AdvancedObject(int x, int y, int w, int h, bool isStatic) :
+		Game_TextObject(x, y, w, h, isStatic)
 {
-	m_keyTypedFunc = NULL;
-	m_mouseClickedFunc = NULL;
-
-	textScaling = 1.0;
-	autoSize = true;
-
-	m_text = "";
-
-	m_textColor.r = 255;
-	m_textColor.g = 255;
-	m_textColor.b = 255;
-	m_textColor.a = 0;
-
-	m_backgroundColor.r = 0;
-	m_backgroundColor.g = 0;
-	m_backgroundColor.b = 0;
-	m_backgroundColor.a = 0;
-
-	setTextureUpdate(textObjectTextureUpdate);
+	keyTypedFunc = NULL;
+	mouseClickedFunc = NULL;
 }
 
 Game_AdvancedObject::~Game_AdvancedObject()
 {
-	Game_ObjectProperty* currentProperty = m_properties;
-	Game_ObjectProperty* tempProperty = NULL;
-	while (currentProperty)
+	LinkedListNode<Game_ObjectProperty>* currentNode = m_properties;
+	LinkedListNode<Game_ObjectProperty>* tempNode = NULL;
+	while (currentNode)
 	{
-		tempProperty = currentProperty->m_nextProperty;
-		delete currentProperty;
-		currentProperty = tempProperty;
+		tempNode = currentNode->nextNode;
+		delete currentNode;
+		currentNode = tempNode;
 	}
 }

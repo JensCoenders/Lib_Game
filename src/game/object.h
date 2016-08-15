@@ -1,9 +1,8 @@
-#ifndef GAME_OBJ_H
-#define GAME_OBJ_H 1
+#ifndef GAME_OBJECT_H
+#define GAME_OBJECT_H
 
 #include <SDL.h>
-#include <string>
-#include <typeinfo>
+
 #include "types.h"
 
 using namespace std;
@@ -11,24 +10,12 @@ using namespace std;
 /* Type definitions */
 
 class Game_Object;
-typedef struct game_objectnode Game_ObjectNode;
-typedef struct game_objectnode
-{
-	public:
-		Game_ObjectNode* prevNode;
-		Game_ObjectNode* nextNode;
-		Game_Object* object;
-
-		game_objectnode();
-		~game_objectnode();
-
-} Game_ObjectNode;
 
 typedef struct game_renderlayer
 {
 	public:
 		int objectCount;
-		Game_ObjectNode* objectList;
+		LinkedListNode<Game_Object>* objectList;
 
 		game_renderlayer();
 		~game_renderlayer();
@@ -41,21 +28,24 @@ typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipm
 class Game_Object
 {
 	public:
-		// Render vars
-		Game_Point realCoords;
-		Game_Rect realSize;
+		// Misc vars
+		bool isStatic;
 
 		// Texture vars
 		SDL_Texture* lastRenderedTexture;
 
-		// Color funcs
-		SDL_Color getBackgroundColor();
-		void setBackgroundColor(SDL_Color color);
+		// World vars
+		Game_Point worldCoords;
+		Game_Rect worldSize;
 
 		// Misc funcs
 		unsigned int getID();
-		Game_ObjectType getType();
-		void setType(Game_ObjectType type);
+
+		// Texture funcs
+		SDL_Color getBackgroundColor();
+		string getImageTexturePath();
+		void setBackgroundColor(SDL_Color color);
+		void setImageTexture(string textureName);
 
 		// Texture update funcs
 		bool needsTextureUpdate();
@@ -68,51 +58,58 @@ class Game_Object
 		void setFrameUpdate(Game_ObjectFUFunc function);
 		void setTextureUpdate(Game_ObjectTUFunc function);
 
-		// World funcs
-		Game_Point getCoords();
-		Game_Rect getSize();
-		void setCoords(int x, int y);
-		void setSize(int width, int height);
-
-		Game_Object(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
-		virtual ~Game_Object() {}
+		Game_Object(int x, int y, int w, int h, bool isStatic = false);
+		virtual ~Game_Object();
 	protected:
-		// Color vars
-		SDL_Color m_backgroundColor;
-
 		// Misc vars
 		unsigned int m_ID;
-		Game_ObjectType m_objectType;
 
 		// Property vars
-		Game_ObjectProperty* m_properties;
+		LinkedListNode<Game_ObjectProperty>* m_properties;
 
 		// Texture vars
+		SDL_Color m_backgroundColor;
+		string m_imageTexturePath;
 		bool m_needsTextureUpdate;
 
 		// Update vars
 		Game_ObjectFUFunc m_frameUpdateFunc;
 		Game_ObjectTUFunc m_textureUpdateFunc;
 
-		// World vars
-		Game_Point m_coords;
-		Game_Rect m_size;
+};
+
+class Game_TextObject : public Game_Object
+{
+	public:
+		// Text vars
+		double textScaling;
+		bool autoSize;
+
+		// Text funcs
+		string getText();
+		SDL_Color getTextColor();
+		void setText(string text);
+		void setTextColor(SDL_Color color);
+
+		SDL_Surface* renderText();
+
+		Game_TextObject(int x, int y, int w, int h, bool isStatic = false);
+	private:
+		// Text vars
+		string m_text;
+		SDL_Color m_textColor;
 
 };
 
 class Game_AdvancedObject;
 typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, SDL_Event& eventData);
 
-class Game_AdvancedObject : public Game_Object
+class Game_AdvancedObject : public Game_TextObject
 {
 	public:
 		// Event vars
-		Game_ObjectEventFunc m_keyTypedFunc;
-		Game_ObjectEventFunc m_mouseClickedFunc;
-
-		// Text vars
-		double textScaling;
-		bool autoSize;
+		Game_ObjectEventFunc keyTypedFunc;
+		Game_ObjectEventFunc mouseClickedFunc;
 
 		// Event funcs
 		bool callEventFunction(Game_ObjectEventType type, SDL_Event& event);
@@ -123,64 +120,33 @@ class Game_AdvancedObject : public Game_Object
 		bool getBoolProperty(string name, bool defaultValue);
 		string getStringProperty(string name, string defaultValue);
 
-		template<typename T>
+		template <typename T>
 		void setProperty(string name, T value);
 
-		// Text funcs
-		string getText();
-		SDL_Color getTextColor();
-		void setText(string text);
-		void setTextColor(SDL_Color color);
-
-		SDL_Surface* renderText();
-
-		Game_AdvancedObject(int x, int y, int w, int h, Game_ObjectType type = OBJECT_TYPE_NORMAL);
+		Game_AdvancedObject(int x, int y, int w, int h, bool isStatic = false);
 		~Game_AdvancedObject();
 	private:
-		// Text vars
-		string m_text;
-		SDL_Color m_textColor;
-
 		// Misc funcs
-		Game_ObjectProperty* findPropertyByName(string name);
+		LinkedListNode<Game_ObjectProperty>* findPropertyByName(string name);
+
 };
 
-template<typename T>
+template <typename T>
 void Game_AdvancedObject::setProperty(string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));
 
-	Game_ObjectProperty* currentProperty = findPropertyByName(name);
-	if (!currentProperty)
+	LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
+	if (!propertyNode)
 	{
-		currentProperty = new Game_ObjectProperty();
-		currentProperty->m_name = name;
-		currentProperty->m_nextProperty = m_properties;
-		m_properties = currentProperty;
+		propertyNode = new LinkedListNode<Game_ObjectProperty>();
+		propertyNode->value->name = name;
+		propertyNode->nextNode = m_properties;
+		m_properties = propertyNode;
 	}
 
-	if (typeid(T) == typeid(int))
-	{
-		if (!currentProperty->m_intValue)
-			currentProperty->m_intValue = new int();
-
-		*currentProperty->m_intValue = value;
-	}
-	else if (typeid(T) == typeid(bool))
-	{
-		if (!currentProperty->m_boolValue)
-			currentProperty->m_boolValue = new bool();
-
-		*currentProperty->m_boolValue = value;
-	}
-	else if (typeid(T) == typeid(string))
-	{
-		if (!currentProperty->m_stringValue)
-			currentProperty->m_stringValue = new string();
-
-		*currentProperty->m_stringValue = value;
-	}
+	propertyNode->value->setValue(value);
 }
 
 #endif

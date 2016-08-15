@@ -2,9 +2,8 @@
 #define GAME_SHARED_H
 
 #include <SDL.h>
-#include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <string>
+
 #include "object.h"
 #include "types.h"
 
@@ -37,7 +36,6 @@ class Game_SharedMemory
 		// Miscellaneous (m)
 		static string m_assetsFolder;
 		static Game_AdvancedObject* m_keyboardInputObject;
-		static Game_AdvancedObject* m_fpsObject;
 		static TTF_Font* m_guiFont;
 
 };
@@ -53,6 +51,8 @@ class Game_Tools
 
 		template<typename ... Args>
 		static string getAssetPath(string name, Args&... subDirectories);
+
+		static SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment);
 };
 
 template<typename T>

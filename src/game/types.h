@@ -1,9 +1,12 @@
 #ifndef GAME_TYPES_H
-#define GAME_TYPES_H 1
+#define GAME_TYPES_H
 
 #include <string>
+#include <typeinfo>
 
 using namespace std;
+
+#define GAME_VERSION "0.2.0"
 
 #define GAME_LAYER_GUI_FOREGROUND	0
 #define GAME_LAYER_GUI_BACKGROUND	1
@@ -32,14 +35,6 @@ using namespace std;
 
 /* Type definitions */
 
-typedef enum game_objecttype
-{
-	OBJECT_TYPE_NORMAL,
-	OBJECT_TYPE_GUI,
-	OBJECT_TYPE_WORLD
-
-} Game_ObjectType;
-
 typedef enum game_objecteventtype
 {
 	EVENT_TYPE_TYPED,
@@ -64,31 +59,12 @@ typedef struct game_rect
 typedef struct game_camera
 {
 	public:
-		Game_Point m_position;
-		Game_Rect m_size;
-		unsigned char m_movementDirection;
-		int m_movementSpeed;
+		Game_Point position;
+		Game_Rect size;
+		unsigned char movementDirection;
+		int movementSpeed;
 
 } Game_Camera;
-
-typedef struct game_objectproperty Game_ObjectProperty;
-typedef struct game_objectproperty
-{
-	public:
-		string m_name;
-		Game_ObjectProperty* m_nextProperty;
-
-		int* m_intValue;
-		bool* m_boolValue;
-		string* m_stringValue;
-
-		template<typename T>
-		void setValue(T value);
-
-		game_objectproperty();
-		~game_objectproperty();
-
-} Game_ObjectProperty;
 
 typedef struct game_renderequipment
 {
@@ -100,5 +76,73 @@ typedef struct game_renderequipment
 		~game_renderequipment();
 
 } Game_RenderEquipment;
+
+typedef struct game_objectproperty
+{
+	public:
+		string name;
+
+		int getIntValue();
+		bool getBoolValue();
+		string getStringValue();
+
+		template <typename T>
+		void setValue(T value);
+
+		game_objectproperty();
+		~game_objectproperty();
+	private:
+		int m_intValue;
+		bool m_boolValue;
+		string* m_stringValue;
+
+} Game_ObjectProperty;
+
+template <typename T>
+void game_objectproperty::setValue(T value)
+{
+	if (typeid(T) == typeid(int))
+		m_intValue = (int)value;
+	else if (typeid(T) == typeid(bool))
+		m_boolValue = (bool)value;
+	else if (typeid(T) == typeid(string))
+	{
+		m_stringValue = new string();
+		*m_stringValue = (string)value;
+	}
+	else
+		cout << "[WARN] Data type other than int, bool or string not allowed for object property!" << endl;
+}
+
+template <typename T>
+struct LinkedListNode
+{
+	public:
+		T* value;
+		LinkedListNode<T>* prevNode;
+		LinkedListNode<T>* nextNode;
+
+		LinkedListNode();
+		~LinkedListNode();
+
+};
+
+template <typename T>
+LinkedListNode<T>::LinkedListNode()
+{
+	value = NULL;
+	prevNode = NULL;
+	nextNode = NULL;
+}
+
+template <typename T>
+LinkedListNode<T>::~LinkedListNode()
+{
+	if (prevNode)
+		delete prevNode;
+
+	if (nextNode)
+		delete nextNode;
+}
 
 #endif

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <time.h>
 #include <sstream>
+
 #include "control.h"
 #include "thread.h"
 
@@ -64,11 +65,9 @@ void game_renderThread()
 	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
 
 	// Setup FPS object
-	Game_AdvancedObject fpsObject(0, 0, 100, 50, OBJECT_TYPE_GUI);
+	Game_TextObject fpsObject(0, 0, 100, 50, true);
 	fpsObject.setText("FPS: 0");
-	fpsObject.setTextColor( {255, 255, 255, 0});
 
-	Game_SharedMemory::m_fpsObject = &fpsObject;
 	Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
 
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
@@ -80,27 +79,27 @@ void game_renderThread()
 		SDL_RenderClear(mainRenderer);
 
 		// Update camera
-		if (mainCamera.m_movementDirection)
+		if (mainCamera.movementDirection)
 		{
-			if (mainCamera.m_movementDirection & 0x1)
-				mainCamera.m_position.y -= mainCamera.m_movementSpeed;
-			else if (mainCamera.m_movementDirection & 0x2)
-				mainCamera.m_position.y += mainCamera.m_movementSpeed;
+			if (mainCamera.movementDirection & 0x1)
+				mainCamera.position.y -= mainCamera.movementSpeed;
+			else if (mainCamera.movementDirection & 0x2)
+				mainCamera.position.y += mainCamera.movementSpeed;
 
-			if (mainCamera.m_movementDirection & 0x4)
-				mainCamera.m_position.x -= mainCamera.m_movementSpeed;
-			else if (mainCamera.m_movementDirection & 0x8)
-				mainCamera.m_position.x += mainCamera.m_movementSpeed;
+			if (mainCamera.movementDirection & 0x4)
+				mainCamera.position.x -= mainCamera.movementSpeed;
+			else if (mainCamera.movementDirection & 0x8)
+				mainCamera.position.x += mainCamera.movementSpeed;
 		}
 
 		// Draw all objects
 		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
 		{
 			Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
-			Game_ObjectNode* currentObjectNode = currentLayer->objectList;
-			while (currentObjectNode != NULL)
+			LinkedListNode<Game_Object>* currentObjectNode = currentLayer->objectList;
+			while (currentObjectNode)
 			{
-				Game_Object* currentObject = currentObjectNode->object;
+				Game_Object* currentObject = currentObjectNode->value;
 
 				// Frame-update object
 				currentObject->frameUpdate();
@@ -116,12 +115,16 @@ void game_renderThread()
 					}
 
 					// Create render equipment
-					Game_RenderEquipment* equipment = Game_Tools::createRenderEquipment(currentObject->getSize().width,
-					        currentObject->getSize().height);
+					Game_RenderEquipment* equipment = NULL;
+					if (currentObject->worldSize.width > 0 && currentObject->worldSize.height > 0)
+					{
+						equipment = Game_Tools::createRenderEquipment(currentObject->worldSize.width,
+							currentObject->worldSize.height);
 
-					// Prepare renderer
-					SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
-					SDL_RenderClear(equipment->softwareRenderer);
+						// Prepare renderer
+						SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
+						SDL_RenderClear(equipment->softwareRenderer);
+					}
 
 					// Update object texture
 					SDL_Surface* surface = currentObject->textureUpdate(equipment);
@@ -130,42 +133,45 @@ void game_renderThread()
 						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
 						currentObject->satisfyTextureUpdate();
 
-						if (surface != equipment->surface)
+						if (equipment && surface != equipment->surface)
 							SDL_FreeSurface(surface);
 					}
 
-					delete equipment;
+					if (equipment)
+						delete equipment;
 				}
 
 				// Draw object
 				if (currentObject->lastRenderedTexture)
 				{
 					SDL_Rect destRect;
-					switch (currentObject->getType())
+					if (currentObject->isStatic)
 					{
-						case OBJECT_TYPE_NORMAL:
-						case OBJECT_TYPE_GUI:
-							destRect.x = currentObject->getCoords().x;
-							destRect.y = currentObject->getCoords().y;
-							destRect.w = currentObject->getSize().width;
-							destRect.h = currentObject->getSize().height;
-							break;
-						case OBJECT_TYPE_WORLD:
-							destRect.x = currentObject->getCoords().x - Game_SharedMemory::w_mainCamera.m_position.x;
-							destRect.y = currentObject->getCoords().y - Game_SharedMemory::w_mainCamera.m_position.y;
+						destRect.x = currentObject->worldCoords.x;
+						destRect.y = currentObject->worldCoords.y;
+						destRect.w = currentObject->worldSize.width;
+						destRect.h = currentObject->worldSize.height;
+					}
+					else
+					{
+						destRect.x = currentObject->worldCoords.x - Game_SharedMemory::w_mainCamera.position.x;
+						destRect.y = currentObject->worldCoords.y - Game_SharedMemory::w_mainCamera.position.y;
 
-							/* destRect.x *= Game_SharedMemory::w_zoomScale;
-							 destRect.y *= Game_SharedMemory::w_zoomScale; */
-							// TODO: Fix zooming system
-							destRect.w = currentObject->getSize().width * Game_SharedMemory::w_zoomScale;
-							destRect.h = currentObject->getSize().height * Game_SharedMemory::w_zoomScale;
-							break;
+						// TODO: Fix zooming system
+						/* destRect.x *= Game_SharedMemory::w_zoomScale;
+						 destRect.y *= Game_SharedMemory::w_zoomScale; */
+						destRect.w = currentObject->worldSize.width * Game_SharedMemory::w_zoomScale;
+						destRect.h = currentObject->worldSize.height * Game_SharedMemory::w_zoomScale;
 					}
 
-					currentObject->realCoords.x = destRect.x;
-					currentObject->realCoords.y = destRect.y;
-					currentObject->realSize.width = destRect.w;
-					currentObject->realSize.height = destRect.h;
+					if (destRect.w < 0 || destRect.h < 0)
+					{
+						int w, h;
+						SDL_GetWindowSize(Game_SharedMemory::s_window, &w, &h);
+
+						destRect.w += (w + 1);
+						destRect.h += (h + 1);
+					}
 
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
 						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
@@ -190,7 +196,7 @@ void game_renderThread()
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << framesPerSecond;
-				Game_SharedMemory::m_fpsObject->setText(stringStream.str());
+				fpsObject.setText(stringStream.str());
 			}
 
 			// Update sleep time if necessary

@@ -19,28 +19,6 @@ string game_rect::toString()
 	return stringStream.str();
 }
 
-game_objectproperty::game_objectproperty()
-{
-	m_name = "";
-	m_nextProperty = NULL;
-
-	m_intValue = NULL;
-	m_boolValue = NULL;
-	m_stringValue = NULL;
-}
-
-game_objectproperty::~game_objectproperty()
-{
-	if (m_intValue)
-		delete m_intValue;
-
-	if (m_boolValue)
-		delete m_boolValue;
-
-	if (m_stringValue)
-		delete m_stringValue;
-}
-
 game_renderequipment::game_renderequipment(SDL_Renderer* renderer, SDL_Surface* surface)
 {
 	this->softwareRenderer = renderer;
@@ -54,4 +32,32 @@ game_renderequipment::~game_renderequipment()
 
 	if (softwareRenderer)
 		SDL_DestroyRenderer(softwareRenderer);
+}
+
+int game_objectproperty::getIntValue()
+{
+	return m_intValue;
+}
+
+bool game_objectproperty::getBoolValue()
+{
+	return m_boolValue;
+}
+
+string game_objectproperty::getStringValue()
+{
+	return *m_stringValue;
+}
+
+game_objectproperty::game_objectproperty()
+{
+	m_intValue = 0;
+	m_boolValue = false;
+	m_stringValue = NULL;
+}
+
+game_objectproperty::~game_objectproperty()
+{
+	if (m_stringValue)
+		delete m_stringValue;
 }

@@ -1,5 +1,7 @@
 #include <iostream>
+
 #include "event.h"
+#include "shared.h"
 
 using namespace std;
 
@@ -14,46 +16,42 @@ bool processCameraMovement(SDL_KeyboardEvent& event)
 		case SDL_SCANCODE_W:
 			if (event.state == SDL_PRESSED)
 			{
-				mainCamera.m_movementDirection &= 0xD;   // Remove 'backward' movement
-				mainCamera.m_movementDirection |= 0x1;   // Add 'forward' movement
+				mainCamera.movementDirection &= 0xD;   // Remove 'backward' movement
+				mainCamera.movementDirection |= 0x1;   // Add 'forward' movement
 			}
 			else
-			{
-				mainCamera.m_movementDirection &= 0xE;   // Remove 'forward' movement
-			}
+				mainCamera.movementDirection &= 0xE;   // Remove 'forward' movement
+
 			break;
 		case SDL_SCANCODE_A:
 			if (event.state == SDL_PRESSED)
 			{
-				mainCamera.m_movementDirection &= 0x7;   // Remove 'right' movement
-				mainCamera.m_movementDirection |= 0x4;   // Add 'left' movement
+				mainCamera.movementDirection &= 0x7;   // Remove 'right' movement
+				mainCamera.movementDirection |= 0x4;   // Add 'left' movement
 			}
 			else
-			{
-				mainCamera.m_movementDirection &= 0xB;   // Remove 'left' movement
-			}
+				mainCamera.movementDirection &= 0xB;   // Remove 'left' movement
+
 			break;
 		case SDL_SCANCODE_S:
 			if (event.state == SDL_PRESSED)
 			{
-				mainCamera.m_movementDirection &= 0xE;   // Remove 'forward' movement
-				mainCamera.m_movementDirection |= 0x2;   // Add 'backward' movement
+				mainCamera.movementDirection &= 0xE;   // Remove 'forward' movement
+				mainCamera.movementDirection |= 0x2;   // Add 'backward' movement
 			}
 			else
-			{
-				mainCamera.m_movementDirection &= 0xD;   // Remove 'backward' movement
-			}
+				mainCamera.movementDirection &= 0xD;   // Remove 'backward' movement
+
 			break;
 		case SDL_SCANCODE_D:
 			if (event.state == SDL_PRESSED)
 			{
-				mainCamera.m_movementDirection &= 0xB;   // Remove 'left' movement
-				mainCamera.m_movementDirection |= 0x8;   // Add 'right' movement
+				mainCamera.movementDirection &= 0xB;   // Remove 'left' movement
+				mainCamera.movementDirection |= 0x8;   // Add 'right' movement
 			}
 			else
-			{
-				mainCamera.m_movementDirection &= 0x7;   // Remove 'right' movement
-			}
+				mainCamera.movementDirection &= 0x7;   // Remove 'right' movement
+
 			break;
 		default:
 			break;
@@ -80,11 +78,12 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 			case SDL_SCANCODE_SPACE:
 				if (event.keysym.mod & KMOD_LSHIFT)
 				{
-					if (Game_SharedMemory::w_mainCamera.m_movementSpeed > 1.0)
-						Game_SharedMemory::w_mainCamera.m_movementSpeed -= 1.0;
+					if (Game_SharedMemory::w_mainCamera.movementSpeed > 1)
+						Game_SharedMemory::w_mainCamera.movementSpeed -= 1;
 				}
 				else
-					Game_SharedMemory::w_mainCamera.m_movementSpeed += 1.0;
+					Game_SharedMemory::w_mainCamera.movementSpeed += 1;
+
 				break;
 			default:
 				keyProcessed = false;
@@ -123,9 +122,9 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 		switch (event.keysym.scancode)
 		{
 			case SDL_SCANCODE_R:
-				Game_SharedMemory::w_mainCamera.m_position.x = 0;
-				Game_SharedMemory::w_mainCamera.m_position.y = 0;
-				Game_SharedMemory::w_mainCamera.m_movementSpeed = 2;
+				Game_SharedMemory::w_mainCamera.position.x = 0;
+				Game_SharedMemory::w_mainCamera.position.y = 0;
+				Game_SharedMemory::w_mainCamera.movementSpeed = 2;
 				Game_SharedMemory::w_zoomScale = 1;
 				break;
 			case SDL_SCANCODE_F11:
@@ -170,23 +169,26 @@ void game_processMouseEvent(SDL_Event& event)
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
 		Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
-		Game_ObjectNode* currentObjectNode = currentLayer->objectList;
-		while (currentObjectNode != NULL)
+		LinkedListNode<Game_Object>* currentNode = currentLayer->objectList;
+		while (currentNode)
 		{
-			Game_AdvancedObject* object = dynamic_cast<Game_AdvancedObject*>(currentObjectNode->object);
-			if (object)
+			Game_AdvancedObject* object = NULL;
+			if ((object = dynamic_cast<Game_AdvancedObject*>(currentNode->value)))
 			{
-				if ((clickedX >= object->realCoords.x) && (clickedX <= (object->realCoords.x + object->realSize.width)))
+				int realX = object->worldCoords.x - Game_SharedMemory::w_mainCamera.position.x;
+				int realY = object->worldCoords.y - Game_SharedMemory::w_mainCamera.position.y;
+				int realWidth = object->worldSize.width * Game_SharedMemory::w_zoomScale;
+				int realHeight = object->worldSize.height * Game_SharedMemory::w_zoomScale;
+
+				if ((clickedX >= realX) && (clickedX <= (realX + realWidth)) && (clickedY >= realY)
+						&& (clickedY <= realY + realHeight))
 				{
-					if ((clickedY >= object->realCoords.y) && (clickedY <= (object->realCoords.y + object->realSize.height)))
-					{
-						((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, event);
-						return;
-					}
+					((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, event);
+					return;
 				}
 			}
 
-			currentObjectNode = currentObjectNode->nextNode;
+			currentNode = currentNode->nextNode;
 		}
 	}
 }
@@ -199,8 +201,8 @@ void game_processWindowEvent(SDL_Event& event)
 			int w, h;
 			SDL_GetWindowSize(Game_SharedMemory::s_window, &w, &h);
 
-			Game_SharedMemory::w_mainCamera.m_size.width = w;
-			Game_SharedMemory::w_mainCamera.m_size.height = h;
+			Game_SharedMemory::w_mainCamera.size.width = w;
+			Game_SharedMemory::w_mainCamera.size.height = h;
 
 			SDL_RenderClear(Game_SharedMemory::s_mainRenderer);
 			break;

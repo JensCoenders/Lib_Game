@@ -1,30 +1,13 @@
 #include <iostream>
 #include <sstream>
+
 #include "testgame.h"
-
-SDL_Surface* obstacleTU(Game_Object& object, Game_RenderEquipment* equipment)
-{
-	SDL_Rect destRect;
-	destRect.x = 0;
-	destRect.y = 0;
-	destRect.w = equipment->surface->w;
-	destRect.h = equipment->surface->h;
-
-	SDL_Color backgroundColor = object.getBackgroundColor();
-
-	SDL_SetRenderDrawColor(equipment->softwareRenderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, 255);
-	SDL_RenderFillRect(equipment->softwareRenderer, &destRect);
-
-	return equipment->surface;
-}
 
 void playerFU(Game_Object& object)
 {
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
-	int newX = 0, newY = 0;
-	newX = mainCamera.m_position.x + (mainCamera.m_size.width - object.getSize().width) / 2;
-	newY = mainCamera.m_position.y + (mainCamera.m_size.height - object.getSize().height) / 2;
-	object.setCoords(newX, newY);
+	object.worldCoords.x = mainCamera.position.x + (mainCamera.size.width - object.worldSize.width) / 2;
+	object.worldCoords.y = mainCamera.position.y + (mainCamera.size.height - object.worldSize.height) / 2;
 }
 
 void playerClicked(Game_AdvancedObject& object, SDL_Event& eventData)
@@ -70,13 +53,12 @@ void playerClicked(Game_AdvancedObject& object, SDL_Event& eventData)
 
 void speedLabFU(Game_Object& object)
 {
-	Game_AdvancedObject& advancedObject = (Game_AdvancedObject&) object;
+	Game_TextObject& advancedObject = (Game_TextObject&) object;
 
-	int lastMovementSpeed = advancedObject.getIntProperty("lastMovementSpeed", 0);
-	if (lastMovementSpeed != Game_SharedMemory::w_mainCamera.m_movementSpeed)
+	static int lastMovementSpeed = 0;
+	if (lastMovementSpeed != Game_SharedMemory::w_mainCamera.movementSpeed)
 	{
-		lastMovementSpeed = Game_SharedMemory::w_mainCamera.m_movementSpeed;
-		advancedObject.setProperty("lastMovementSpeed", lastMovementSpeed);
+		lastMovementSpeed = Game_SharedMemory::w_mainCamera.movementSpeed;
 
 		ostringstream stream;
 		stream << "Camera movement speed: " << lastMovementSpeed;
@@ -93,39 +75,41 @@ void zoomScaleLabFU(Game_Object& object)
 
 		ostringstream stream;
 		stream << "Zoom scale: " << lastZoomScale;
-		((Game_AdvancedObject&) object).setText(stream.str());
+		((Game_TextObject&) object).setText(stream.str());
 	}
 }
 
 void runTestGame()
 {
 	// Create game objects
-	SDL_Color* colorList = new SDL_Color[5] { {255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {0, 255, 255}, {255, 0, 255}};
-	Game_Object** obstacles = new Game_Object*[10];
+	Game_Object* obstacles[10];
 	for (int i = 0; i < 10; i++)
 	{
-		Game_Object* obstacle = new Game_Object(10 + i * 70, 10, 50, 50, OBJECT_TYPE_WORLD);
-		obstacle->setTextureUpdate(obstacleTU);
-		obstacle->setBackgroundColor(colorList[i % 5]);
+		Game_Object* obstacle = new Game_Object(10 + i * 110, 10, 100, 100, false);
+		obstacle->setTextureUpdate(Game_Tools::imageTextureObjectTU);
+		obstacle->setImageTexture("container_circle.png");
 
 		obstacles[i] = obstacle;
 		Game_Tools::addGameObject(obstacle, GAME_LAYER_LEVEL_MID_1);
 	}
 
-	delete[] colorList;
+	Game_Object background(0, 0, -1, -1, true);
+	background.setTextureUpdate(Game_Tools::imageTextureObjectTU);
+	background.setImageTexture("background.png");
 
-	Game_AdvancedObject player(0, 0, 80, 40, OBJECT_TYPE_WORLD);
+	Game_AdvancedObject player(0, 0, 100, 100, false);
 	player.setFrameUpdate(playerFU);
-	player.setTextureUpdate(obstacleTU);
+	player.setTextureUpdate(Game_Tools::imageTextureObjectTU);
 	player.setEventFunction(EVENT_TYPE_CLICKED, playerClicked);
-	player.setBackgroundColor( {255, 0, 0});
+	player.setImageTexture("player.png");
 
-	Game_AdvancedObject speedLab(0, 25, 275, 50, OBJECT_TYPE_GUI);
+	Game_TextObject speedLab(0, 25, 275, 50, true);
 	speedLab.setFrameUpdate(speedLabFU);
 
-	Game_AdvancedObject zoomScaleLab(0, 50, 150, 50, OBJECT_TYPE_GUI);
+	Game_TextObject zoomScaleLab(0, 50, 150, 50, true);
 	zoomScaleLab.setFrameUpdate(zoomScaleLabFU);
 
+	Game_Tools::addGameObject(&background, GAME_LAYER_LEVEL_BACKGROUND);
 	Game_Tools::addGameObject(&player, GAME_LAYER_LEVEL_FOREGROUND);
 	Game_Tools::addGameObject(&speedLab, GAME_LAYER_GUI_FOREGROUND);
 	Game_Tools::addGameObject(&zoomScaleLab, GAME_LAYER_GUI_FOREGROUND);
@@ -136,7 +120,6 @@ void runTestGame()
 	// Delete objects
 	for (int i = 0; i < 5; i++)
 		delete obstacles[i];
-	delete[] obstacles;
 
 	cout << "[INFO] Stopped main thread" << endl;
 }

@@ -1,9 +1,9 @@
 #ifndef GAME_CONTROL_H
-#define GAME_CONTROL_H 1
+#define GAME_CONTROL_H
 
-#include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_ttf.h>
+
+#include "shared.h"
 #include "event.h"
 
 using namespace std;

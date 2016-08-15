@@ -1,4 +1,6 @@
+#include <SDL_image.h>
 #include <iostream>
+
 #include "shared.h"
 
 /* Shared Memory */
@@ -7,7 +9,7 @@ bool Game_SharedMemory::p_running = false;
 int Game_SharedMemory::p_targetFPS = 60;
 bool Game_SharedMemory::p_useFPSCounter = true;
 
-Game_Camera Game_SharedMemory::w_mainCamera = { {0, 0}, {1024, 576}, 0, 2};
+Game_Camera Game_SharedMemory::w_mainCamera = {{0, 0}, {1024, 576}, 0, 2};
 bool Game_SharedMemory::w_keyboardMovesCamera = true;
 double Game_SharedMemory::w_zoomScale = 1.0;
 
@@ -20,7 +22,6 @@ SDL_Window* Game_SharedMemory::s_window = NULL;
 
 string Game_SharedMemory::m_assetsFolder = "assets";
 Game_AdvancedObject* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
-Game_AdvancedObject* Game_SharedMemory::m_fpsObject = NULL;
 TTF_Font* Game_SharedMemory::m_guiFont = NULL;
 
 bool Game_Tools::addGameObject(Game_Object* object, unsigned int layerID)
@@ -32,11 +33,11 @@ bool Game_Tools::addGameObject(Game_Object* object, unsigned int layerID)
 	}
 
 	Game_RenderLayer* layer = &Game_SharedMemory::r_renderLayers[layerID];
-	Game_ObjectNode* newObjectNode = new Game_ObjectNode();
-	newObjectNode->object = object;
-	newObjectNode->nextNode = layer->objectList;
+	LinkedListNode<Game_Object>* newNode = new LinkedListNode<Game_Object>();
+	newNode->value = object;
+	newNode->nextNode = layer->objectList;
 
-	layer->objectList = newObjectNode;
+	layer->objectList = newNode;
 	layer->objectCount++;
 
 	return true;
@@ -47,26 +48,24 @@ bool Game_Tools::removeGameObject(Game_Object* object)
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
 		Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
-		Game_ObjectNode* currentObjectNode = currentLayer->objectList;
-		while (currentObjectNode != NULL)
+		LinkedListNode<Game_Object>* currentNode = currentLayer->objectList;
+		while (currentNode)
 		{
-			if (currentObjectNode->object->getID() == object->getID())
+			if (currentNode->value->getID() == object->getID())
 			{
-				if (currentObjectNode->prevNode != NULL)
-					currentObjectNode->prevNode->nextNode = currentObjectNode->nextNode;
+				if (currentNode->prevNode)
+					currentNode->prevNode->nextNode = currentNode->nextNode;
 
-				if (currentObjectNode->nextNode != NULL)
-					currentObjectNode->nextNode->prevNode = currentObjectNode->prevNode;
+				if (currentNode->nextNode)
+					currentNode->nextNode->prevNode = currentNode->prevNode;
 
-				currentObjectNode->prevNode = NULL;
-				currentObjectNode->nextNode = NULL;
-				delete currentObjectNode;
+				delete currentNode;
 				currentLayer->objectCount--;
 
 				return true;
 			}
 
-			currentObjectNode = currentObjectNode->nextNode;
+			currentNode = currentNode->nextNode;
 		}
 	}
 
@@ -105,4 +104,16 @@ Game_RenderEquipment* Game_Tools::createRenderEquipment(int surfaceWidth, int su
 	}
 
 	return new Game_RenderEquipment(renderer, surface);
+}
+
+SDL_Surface* Game_Tools::imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
+{
+	SDL_Surface* imageTextureSurface = IMG_Load(object.getImageTexturePath().c_str());
+	if (!imageTextureSurface)
+	{
+		cout << "[ERR]: " << IMG_GetError() << endl;
+		return NULL;
+	}
+
+	return imageTextureSurface;
 }

@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include "testgame.h"
 
 using namespace std;
@@ -6,9 +7,11 @@ using namespace std;
 int initialize()
 {
 	// Initialize SDL
-	cout << "[INFO] Initializing SDL... ";
+	string windowTitle = "Jens Game ";
+	windowTitle += GAME_VERSION;
 
-	int returnCode = game_initializeSDL("Jens Game V2.0");
+	cout << "[INFO] Initializing SDL... ";
+	int returnCode = game_initializeSDL(windowTitle);
 	if (!returnCode)
 		cout << "[OK]" << endl;
 	else
@@ -43,11 +46,8 @@ void displayHelp(string programName)
 	cout << "This software was developed by Jens Coenders" << endl;
 }
 
-int main(int argc, char** argv)
+bool processArguments(int argc, char** argv)
 {
-	// TODO: Fix position glitch when window resizes
-
-	// Process arguments
 	for (int i = 1; i < argc; i++)
 	{
 		string argument = argv[i];
@@ -62,24 +62,30 @@ int main(int argc, char** argv)
 		else if (argument == "--help")
 		{
 			displayHelp(argv[0]);
-			break;
+			return false;
 		}
 		else
 		{
 			cout << "Unknown argument '" << argument << "'!" << endl;
 			displayHelp(argv[0]);
-			break;
+			return false;
 		}
 	}
+
+	return true;
+}
+
+int main(int argc, char** argv)
+{
+	// TODO: Fix position glitch when window resizes
+	// Process arguments
+	if (!processArguments(argc, argv))
+		return -1;
 
 	// Initialize
 	int result = initialize();
 	if (result)
-	{
-		cout << "[INFO] Press enter to exit..." << endl;
-		cin.get();
 		return result;
-	}
 
 	// Run game
 	runTestGame();

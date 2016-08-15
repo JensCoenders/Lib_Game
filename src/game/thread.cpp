@@ -1,5 +1,6 @@
-#include <windows.h>
 #include <iostream>
+#include <windows.h>
+
 #include "thread.h"
 
 using namespace std;
