@@ -31,6 +31,9 @@ class Game_Object
 		// Misc vars
 		bool isStatic;
 
+		// Render funcs
+		Game_RenderPars* renderPars;
+
 		// Texture vars
 		SDL_Texture* lastRenderedTexture;
 
@@ -40,12 +43,6 @@ class Game_Object
 
 		// Misc funcs
 		unsigned int getID();
-
-		// Texture funcs
-		SDL_Color getBackgroundColor();
-		string getImageTexturePath();
-		void setBackgroundColor(SDL_Color color);
-		void setImageTexture(string textureName);
 
 		// Texture update funcs
 		bool needsTextureUpdate();
@@ -68,8 +65,6 @@ class Game_Object
 		LinkedListNode<Game_ObjectProperty>* m_properties;
 
 		// Texture vars
-		SDL_Color m_backgroundColor;
-		string m_imageTexturePath;
 		bool m_needsTextureUpdate;
 
 		// Update vars
@@ -94,7 +89,7 @@ class Game_TextObject : public Game_Object
 		SDL_Surface* renderText();
 
 		Game_TextObject(int x, int y, int w, int h, bool isStatic = false);
-	private:
+	protected:
 		// Text vars
 		string m_text;
 		SDL_Color m_textColor;
@@ -120,18 +115,18 @@ class Game_AdvancedObject : public Game_TextObject
 		bool getBoolProperty(string name, bool defaultValue);
 		string getStringProperty(string name, string defaultValue);
 
-		template <typename T>
+		template<typename T>
 		void setProperty(string name, T value);
 
 		Game_AdvancedObject(int x, int y, int w, int h, bool isStatic = false);
 		~Game_AdvancedObject();
-	private:
+	protected:
 		// Misc funcs
 		LinkedListNode<Game_ObjectProperty>* findPropertyByName(string name);
 
 };
 
-template <typename T>
+template<typename T>
 void Game_AdvancedObject::setProperty(string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)

@@ -10,47 +10,6 @@ void playerFU(Game_Object& object)
 	object.worldCoords.y = mainCamera.position.y + (mainCamera.size.height - object.worldSize.height) / 2;
 }
 
-void playerClicked(Game_AdvancedObject& object, SDL_Event& eventData)
-{
-	SDL_MouseButtonEvent& event = eventData.button;
-	if (event.state == SDL_PRESSED)
-	{
-		static int colorIndex = 0;
-		switch (event.button)
-		{
-			case SDL_BUTTON_LEFT:
-				colorIndex++;
-				break;
-			case SDL_BUTTON_RIGHT:
-				colorIndex--;
-				break;
-			default:
-				break;
-		}
-
-		if (colorIndex < 0)
-			colorIndex = 2;
-		else if (colorIndex > 2)
-			colorIndex = 0;
-
-		SDL_Color newColor = {0, 0, 0, 255};
-		switch (colorIndex)
-		{
-			case 0:
-				newColor.r = 255;
-				break;
-			case 1:
-				newColor.g = 255;
-				break;
-			case 2:
-				newColor.b = 255;
-				break;
-		}
-
-		object.setBackgroundColor(newColor);
-	}
-}
-
 void speedLabFU(Game_Object& object)
 {
 	Game_TextObject& advancedObject = (Game_TextObject&) object;
@@ -87,7 +46,7 @@ void runTestGame()
 	{
 		Game_Object* obstacle = new Game_Object(10 + i * 110, 10, 100, 100, false);
 		obstacle->setTextureUpdate(Game_Tools::imageTextureObjectTU);
-		obstacle->setImageTexture("container_circle.png");
+		obstacle->renderPars = new Game_RP_ImageTexture(Game_Tools::getAssetPath("container_circle.png", "textures"));
 
 		obstacles[i] = obstacle;
 		Game_Tools::addGameObject(obstacle, GAME_LAYER_LEVEL_MID_1);
@@ -95,13 +54,12 @@ void runTestGame()
 
 	Game_Object background(0, 0, -1, -1, true);
 	background.setTextureUpdate(Game_Tools::imageTextureObjectTU);
-	background.setImageTexture("background.png");
+	background.renderPars = new Game_RP_ImageTexture(Game_Tools::getAssetPath("background.png", "textures"));
 
-	Game_AdvancedObject player(0, 0, 100, 100, false);
+	Game_Object player(0, 0, 100, 100, false);
 	player.setFrameUpdate(playerFU);
 	player.setTextureUpdate(Game_Tools::imageTextureObjectTU);
-	player.setEventFunction(EVENT_TYPE_CLICKED, playerClicked);
-	player.setImageTexture("player.png");
+	player.renderPars = new Game_RP_ImageTexture(Game_Tools::getAssetPath("player.png", "textures"));
 
 	Game_TextObject speedLab(0, 25, 275, 50, true);
 	speedLab.setFrameUpdate(speedLabFU);

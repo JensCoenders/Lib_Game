@@ -19,6 +19,23 @@ string game_rect::toString()
 	return stringStream.str();
 }
 
+game_renderpars::game_renderpars(Game_RenderMode renderMode)
+{
+	this->renderMode = renderMode;
+}
+
+game_rp_staticbackground::game_rp_staticbackground(SDL_Color backgroundColor) :
+		game_renderpars(RENDERMODE_STATIC_BACKGROUND)
+{
+	this->backgroundColor = backgroundColor;
+}
+
+game_rp_imagetexture::game_rp_imagetexture(string imageTexturePath) :
+		game_renderpars(RENDERMODE_IMAGE_TEXTURE)
+{
+	this->imageTexturePath = imageTexturePath;
+}
+
 game_renderequipment::game_renderequipment(SDL_Renderer* renderer, SDL_Surface* surface)
 {
 	this->softwareRenderer = renderer;

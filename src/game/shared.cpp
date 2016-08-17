@@ -108,7 +108,12 @@ Game_RenderEquipment* Game_Tools::createRenderEquipment(int surfaceWidth, int su
 
 SDL_Surface* Game_Tools::imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
 {
-	SDL_Surface* imageTextureSurface = IMG_Load(object.getImageTexturePath().c_str());
+	Game_RP_ImageTexture* renderPars = dynamic_cast<Game_RP_ImageTexture*>(object.renderPars);
+	if (!renderPars)
+		return NULL;
+
+	SDL_Surface* imageTextureSurface = IMG_Load(renderPars->imageTexturePath.c_str());
+
 	if (!imageTextureSurface)
 	{
 		cout << "[ERR]: " << IMG_GetError() << endl;

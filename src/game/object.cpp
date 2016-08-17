@@ -21,28 +21,6 @@ unsigned int Game_Object::getID()
 	return m_ID;
 }
 
-SDL_Color Game_Object::getBackgroundColor()
-{
-	return m_backgroundColor;
-}
-
-string Game_Object::getImageTexturePath()
-{
-	return m_imageTexturePath;
-}
-
-void Game_Object::setBackgroundColor(SDL_Color color)
-{
-	m_backgroundColor = color;
-	requestTextureUpdate();
-}
-
-void Game_Object::setImageTexture(string textureName)
-{
-	m_imageTexturePath = Game_Tools::getAssetPath(textureName, "textures");
-	requestTextureUpdate();
-}
-
 bool Game_Object::needsTextureUpdate()
 {
 	return (m_needsTextureUpdate && m_textureUpdateFunc);
@@ -94,9 +72,11 @@ void Game_Object::setTextureUpdate(Game_ObjectTUFunc function)
 	m_textureUpdateFunc = function;
 }
 
-Game_Object::Game_Object(int x, int y, int w, int h, bool isStatic)
+Game_Object::Game_Object(int x, int y, int w, int h, bool staticObject)
 {
-	this->isStatic = isStatic;
+	isStatic = staticObject;
+
+	renderPars = NULL;
 
 	lastRenderedTexture = NULL;
 
@@ -104,12 +84,6 @@ Game_Object::Game_Object(int x, int y, int w, int h, bool isStatic)
 	worldCoords.y = y;
 	worldSize.width = w;
 	worldSize.height = h;
-
-	m_backgroundColor.r = 0;
-	m_backgroundColor.g = 0;
-	m_backgroundColor.b = 0;
-	m_backgroundColor.a = 255;
-	m_imageTexturePath = "";
 
 	m_needsTextureUpdate = true;
 
@@ -124,6 +98,8 @@ Game_Object::Game_Object(int x, int y, int w, int h, bool isStatic)
 
 Game_Object::~Game_Object()
 {
+	if (renderPars)
+		delete renderPars;
 }
 
 string Game_TextObject::getText()

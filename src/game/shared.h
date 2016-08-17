@@ -43,15 +43,20 @@ class Game_SharedMemory
 class Game_Tools
 {
 	public:
+		// Object rendering
 		static bool addGameObject(Game_Object* object, unsigned int layerID);
 		static bool removeGameObject(Game_Object* object);
 
+		// Misc
 		static Game_Rect getTextSize(string text);
-		static Game_RenderEquipment* createRenderEquipment(int surfaceWidth, int surfaceHeight);
 
 		template<typename ... Args>
 		static string getAssetPath(string name, Args&... subDirectories);
 
+		// Rendering
+		static Game_RenderEquipment* createRenderEquipment(int surfaceWidth, int surfaceHeight);
+
+		// TU functions
 		static SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment);
 };
 
