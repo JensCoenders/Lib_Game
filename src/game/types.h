@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define GAME_VERSION "0.2.0"
+#define GAME_VERSION "0.2.1"
 
 #define GAME_LAYER_GUI_FOREGROUND	0
 #define GAME_LAYER_GUI_BACKGROUND	1

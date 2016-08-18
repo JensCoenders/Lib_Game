@@ -1,6 +1,14 @@
 @echo off
+
+echo.
+
 echo Copying DLL files...
-xcopy /Y /Q ..\resources\dll .
+xcopy /Y /Q "..\resources\dll" ".\"
+
 echo Copying asset files...
-mkdir .\assets > nul
-xcopy /Y /Q /S ..\resources\assets .\assets
+if exist ".\assets" (
+	rmdir /Q /S ".\assets"
+)
+
+mkdir .\assets
+xcopy /Y /Q /S "..\resources\assets" ".\assets"
