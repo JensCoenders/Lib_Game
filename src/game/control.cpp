@@ -65,10 +65,14 @@ void game_renderThread()
 	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
 
 	// Setup FPS object
-	Game_TextObject fpsObject(0, 0, 100, 50, true);
-	fpsObject.setText("FPS: 0");
+	if (!Game_SharedMemory::m_fpsObject)
+	{
+		Game_TextObject fpsObject(-1, 0, 100, 50, true);
+		fpsObject.setText("FPS: 0");
 
-	Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
+		Game_SharedMemory::m_fpsObject = &fpsObject;
+		Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
+	}
 
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
 	int startTime = clock(), sleepTime = 16, frameCount = 0;
@@ -119,7 +123,7 @@ void game_renderThread()
 					if (currentObject->worldSize.width > 0 && currentObject->worldSize.height > 0)
 					{
 						equipment = Game_Tools::createRenderEquipment(currentObject->worldSize.width,
-							currentObject->worldSize.height);
+						        currentObject->worldSize.height);
 
 						// Prepare renderer
 						SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
@@ -164,14 +168,15 @@ void game_renderThread()
 						destRect.h = currentObject->worldSize.height * Game_SharedMemory::w_zoomScale;
 					}
 
-					if (destRect.w < 0 || destRect.h < 0)
-					{
-						int w, h;
-						SDL_GetWindowSize(Game_SharedMemory::s_window, &w, &h);
+					if (destRect.w < 0)
+						destRect.w += (Game_SharedMemory::w_mainCamera.size.width + 1);
+					if (destRect.h < 0)
+						destRect.h += (Game_SharedMemory::w_mainCamera.size.height + 1);
 
-						destRect.w += (w + 1);
-						destRect.h += (h + 1);
-					}
+					if (destRect.x < 0)
+						destRect.x += (Game_SharedMemory::w_mainCamera.size.width - destRect.w + 1);
+					if (destRect.y < 0)
+						destRect.y += (Game_SharedMemory::w_mainCamera.size.height - destRect.h + 1);
 
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
 						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
@@ -196,7 +201,7 @@ void game_renderThread()
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << framesPerSecond;
-				fpsObject.setText(stringStream.str());
+				Game_SharedMemory::m_fpsObject->setText(stringStream.str());
 			}
 
 			// Update sleep time if necessary
@@ -239,7 +244,8 @@ int game_initializeSDL(string windowTitle)
 
 	// Setup window
 	flags = SDL_WINDOW_RESIZABLE;
-	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 576, flags);
+	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+	        GAME_WINDOW_STARTSIZE, flags);
 
 	// Setup renderer
 	flags = SDL_RENDERER_ACCELERATED;

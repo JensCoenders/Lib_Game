@@ -7,7 +7,7 @@ using namespace std;
 
 bool processCameraMovement(SDL_KeyboardEvent& event)
 {
-	if (!Game_SharedMemory::w_keyboardMovesCamera)
+	if (!Game_SharedMemory::p_keyboardMovesCamera)
 		return false;
 
 	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
@@ -158,7 +158,10 @@ void game_processKeyboardEvent(SDL_Event& event)
 
 	// Forward event to input object
 	if (Game_SharedMemory::m_keyboardInputObject)
-		Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_TYPED, event);
+	{
+		Game_ObjectEvent objectEvent(&event);
+		Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
+	}
 }
 
 void game_processMouseEvent(SDL_Event& event)
@@ -168,8 +171,7 @@ void game_processMouseEvent(SDL_Event& event)
 	int clickedY = event.button.y;
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
-		LinkedListNode<Game_Object>* currentNode = currentLayer->objectList;
+		LinkedListNode<Game_Object>* currentNode = Game_SharedMemory::r_renderLayers[i].objectList;
 		while (currentNode)
 		{
 			Game_AdvancedObject* object = NULL;
@@ -183,7 +185,12 @@ void game_processMouseEvent(SDL_Event& event)
 				if ((clickedX >= realX) && (clickedX <= (realX + realWidth)) && (clickedY >= realY)
 						&& (clickedY <= realY + realHeight))
 				{
-					((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, event);
+					// Create Game_MouseClickedEvent
+					Game_MouseClickedEvent mouseClickedEvent(&event);
+					mouseClickedEvent.relX = clickedX - realX;
+					mouseClickedEvent.relY = clickedY - realY;
+
+					((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
 					return;
 				}
 			}

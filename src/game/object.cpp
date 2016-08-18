@@ -21,6 +21,22 @@ unsigned int Game_Object::getID()
 	return m_ID;
 }
 
+Game_RenderPars* Game_Object::getRenderPars()
+{
+	return m_renderPars;
+}
+
+void Game_Object::setRenderPars(Game_RenderPars* renderPars)
+{
+	if (m_renderPars)
+	{
+		delete m_renderPars;
+		m_renderPars = NULL;
+	}
+
+	m_renderPars = renderPars;
+}
+
 bool Game_Object::needsTextureUpdate()
 {
 	return (m_needsTextureUpdate && m_textureUpdateFunc);
@@ -52,12 +68,6 @@ SDL_Surface* Game_Object::textureUpdate(Game_RenderEquipment* equipment)
 
 void Game_Object::setFrameUpdate(Game_ObjectFUFunc function)
 {
-	if (!function)
-	{
-		cout << "[WARN] Attempting to set NULL function as FU function!" << endl;
-		return;
-	}
-
 	m_frameUpdateFunc = function;
 }
 
@@ -76,8 +86,6 @@ Game_Object::Game_Object(int x, int y, int w, int h, bool staticObject)
 {
 	isStatic = staticObject;
 
-	renderPars = NULL;
-
 	lastRenderedTexture = NULL;
 
 	worldCoords.x = x;
@@ -92,14 +100,16 @@ Game_Object::Game_Object(int x, int y, int w, int h, bool staticObject)
 
 	m_properties = NULL;
 
+	m_renderPars = NULL;
+
 	static unsigned int lastID = 0;
 	m_ID = lastID++;
 }
 
 Game_Object::~Game_Object()
 {
-	if (renderPars)
-		delete renderPars;
+	if (m_renderPars)
+		delete m_renderPars;
 }
 
 string Game_TextObject::getText()
@@ -167,7 +177,7 @@ Game_TextObject::Game_TextObject(int x, int y, int w, int h, bool isStatic) :
 	setTextureUpdate(textObjectTextureUpdate);
 }
 
-bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, SDL_Event& event)
+bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event)
 {
 	switch (type)
 	{
@@ -180,7 +190,7 @@ bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, SDL_Event
 			break;
 		case EVENT_TYPE_CLICKED:
 			if (mouseClickedFunc)
-				mouseClickedFunc(*this, event);
+				mouseClickedFunc(*this, (Game_MouseClickedEvent&) event);
 			else
 				return false;
 
@@ -189,25 +199,6 @@ bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, SDL_Event
 			return false;
 	}
 	return true;
-}
-
-void Game_AdvancedObject::setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function)
-{
-	if (!function)
-	{
-		cout << "[WARN] Attempting to set NULL function as event function!" << endl;
-		return;
-	}
-
-	switch (type)
-	{
-		case EVENT_TYPE_TYPED:
-			keyTypedFunc = function;
-			break;
-		case EVENT_TYPE_CLICKED:
-			mouseClickedFunc = function;
-			break;
-	}
 }
 
 int Game_AdvancedObject::getIntProperty(string name, int defaultValue)

@@ -18,10 +18,10 @@ class Game_SharedMemory
 		static bool p_running;
 		static int p_targetFPS;
 		static bool p_useFPSCounter;
+		static bool p_keyboardMovesCamera;
 
 		// World (w)
 		static Game_Camera w_mainCamera;
-		static bool w_keyboardMovesCamera;
 		static double w_zoomScale;
 
 		// Rendering (r)
@@ -35,8 +35,9 @@ class Game_SharedMemory
 
 		// Miscellaneous (m)
 		static string m_assetsFolder;
-		static Game_AdvancedObject* m_keyboardInputObject;
 		static TTF_Font* m_guiFont;
+		static Game_TextObject* m_fpsObject;
+		static Game_AdvancedObject* m_keyboardInputObject;
 
 };
 

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define GAME_VERSION "0.2.1"
+#define GAME_VERSION "0.3.0"
 
 #define GAME_LAYER_GUI_FOREGROUND	0
 #define GAME_LAYER_GUI_BACKGROUND	1
@@ -16,6 +16,8 @@ using namespace std;
 #define GAME_LAYER_LEVEL_BACKGROUND	5
 #define GAME_LAYER_BACKGROUND		6
 #define GAME_LAYER_AMOUNT			7
+
+#define GAME_WINDOW_STARTSIZE		350, 270
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 
@@ -81,6 +83,29 @@ LinkedListNode<T>::~LinkedListNode()
 	if (nextNode)
 		delete nextNode;
 }
+
+/* Events */
+// TODO: Create structure for keyboard event
+
+typedef struct game_objectevent
+{
+	public:
+		SDL_Event* originalEvent;
+
+		game_objectevent(SDL_Event* event);
+
+} Game_ObjectEvent;
+
+typedef struct game_mouseclickedeevent : public game_objectevent
+{
+	public:
+		int button;
+		bool pressed;
+		int relX, relY;
+
+		game_mouseclickedeevent(SDL_Event* event);
+
+} Game_MouseClickedEvent;
 
 /* Rendering */
 

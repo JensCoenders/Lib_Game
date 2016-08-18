@@ -8,9 +8,9 @@
 bool Game_SharedMemory::p_running = false;
 int Game_SharedMemory::p_targetFPS = 60;
 bool Game_SharedMemory::p_useFPSCounter = true;
+bool Game_SharedMemory::p_keyboardMovesCamera = true;
 
-Game_Camera Game_SharedMemory::w_mainCamera = {{0, 0}, {1024, 576}, 0, 2};
-bool Game_SharedMemory::w_keyboardMovesCamera = true;
+Game_Camera Game_SharedMemory::w_mainCamera = {{0, 0}, {GAME_WINDOW_STARTSIZE}, 0, 2};
 double Game_SharedMemory::w_zoomScale = 1.0;
 
 Game_RenderLayer* Game_SharedMemory::r_renderLayers = new Game_RenderLayer[GAME_LAYER_AMOUNT];
@@ -21,8 +21,10 @@ SDL_Renderer* Game_SharedMemory::s_mainRenderer = NULL;
 SDL_Window* Game_SharedMemory::s_window = NULL;
 
 string Game_SharedMemory::m_assetsFolder = "assets";
-Game_AdvancedObject* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
 TTF_Font* Game_SharedMemory::m_guiFont = NULL;
+Game_TextObject* Game_SharedMemory::m_fpsObject = NULL;
+Game_AdvancedObject* Game_SharedMemory::m_keyboardInputObject = NULL;	// TODO: Replace input object by input handler
+
 
 bool Game_Tools::addGameObject(Game_Object* object, unsigned int layerID)
 {
@@ -108,7 +110,7 @@ Game_RenderEquipment* Game_Tools::createRenderEquipment(int surfaceWidth, int su
 
 SDL_Surface* Game_Tools::imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
 {
-	Game_RP_ImageTexture* renderPars = dynamic_cast<Game_RP_ImageTexture*>(object.renderPars);
+	Game_RP_ImageTexture* renderPars = dynamic_cast<Game_RP_ImageTexture*>(object.getRenderPars());
 	if (!renderPars)
 		return NULL;
 

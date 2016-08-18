@@ -31,9 +31,6 @@ class Game_Object
 		// Misc vars
 		bool isStatic;
 
-		// Render funcs
-		Game_RenderPars* renderPars;
-
 		// Texture vars
 		SDL_Texture* lastRenderedTexture;
 
@@ -43,6 +40,10 @@ class Game_Object
 
 		// Misc funcs
 		unsigned int getID();
+
+		// Render funcs
+		Game_RenderPars* getRenderPars();
+		void setRenderPars(Game_RenderPars* renderPars);
 
 		// Texture update funcs
 		bool needsTextureUpdate();
@@ -63,6 +64,9 @@ class Game_Object
 
 		// Property vars
 		LinkedListNode<Game_ObjectProperty>* m_properties;
+
+		// Render vars
+		Game_RenderPars* m_renderPars;
 
 		// Texture vars
 		bool m_needsTextureUpdate;
@@ -97,7 +101,7 @@ class Game_TextObject : public Game_Object
 };
 
 class Game_AdvancedObject;
-typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, SDL_Event& eventData);
+typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, Game_ObjectEvent& eventData);
 
 class Game_AdvancedObject : public Game_TextObject
 {
@@ -107,8 +111,7 @@ class Game_AdvancedObject : public Game_TextObject
 		Game_ObjectEventFunc mouseClickedFunc;
 
 		// Event funcs
-		bool callEventFunction(Game_ObjectEventType type, SDL_Event& event);
-		void setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function);
+		bool callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event);
 
 		// Property funcs
 		int getIntProperty(string name, int defaultValue);

@@ -19,6 +19,20 @@ string game_rect::toString()
 	return stringStream.str();
 }
 
+game_objectevent::game_objectevent(SDL_Event* event)
+{
+	this->originalEvent = event;
+}
+
+game_mouseclickedeevent::game_mouseclickedeevent(SDL_Event* event) :
+		game_objectevent(event)
+{
+	this->button = event->button.button;
+	this->pressed = (event->button.state == SDL_PRESSED);
+	this->relX = 0;
+	this->relY = 0;
+}
+
 game_renderpars::game_renderpars(Game_RenderMode renderMode)
 {
 	this->renderMode = renderMode;
