@@ -1,7 +1,7 @@
 #ifndef GAME_OBJECT_H
 #define GAME_OBJECT_H
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "types.h"
 

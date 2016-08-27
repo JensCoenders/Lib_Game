@@ -1,8 +1,8 @@
 #ifndef GAME_SHARED_H
 #define GAME_SHARED_H
 
-#include <SDL.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "object.h"
 #include "types.h"

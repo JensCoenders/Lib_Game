@@ -1,10 +1,10 @@
 #ifndef GAME_CONTROL_H
 #define GAME_CONTROL_H
 
-#include <SDL_image.h>
+#include <SDL2/SDL_image.h>
 
-#include "shared.h"
 #include "event.h"
+#include "shared.h"
 
 using namespace std;
 
