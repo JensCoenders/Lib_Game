@@ -1,20 +1,26 @@
 #include <iostream>
 #include <time.h>
 #include <sstream>
-
-#include "control.h"
-#include "thread.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include "game_control.h"
+#include "game_defs.h"
+#include "game_event.h"
+#include "game_shm.h"
+#include "game_thread.h"
+#include "game_tools.h"
 
 using namespace std;
 
-void game_renderThread();
+int g_renderThreadID = -1;
 
-void game_mainLoop()
+void game_runMainLoop()
 {
 	// Start render thread
 	game_startRenderThread();
 
-	while (Game_SharedMemory::p_running)
+	while (game_shmGet(SHM_GAME_IS_RUNNING))
 	{
 		// Wait and poll events
 		SDL_Event event;
@@ -41,44 +47,27 @@ void game_mainLoop()
 	game_joinRenderThread();
 }
 
-void game_startRenderThread()
-{
-	Game_SharedMemory::p_running = true;
-
-	// Start thread
-	Game_SharedMemory::r_renderThreadID = game_startThread(game_renderThread);
-	if (Game_SharedMemory::r_renderThreadID < 0)
-		cout << "[ERR] Couldn't start render thread! Error code: " << Game_SharedMemory::r_renderThreadID << endl;
-	else
-		cout << "[INFO] Started render thread with ID " << Game_SharedMemory::r_renderThreadID << endl;
-}
-
-void game_joinRenderThread()
-{
-	game_joinThread(Game_SharedMemory::r_renderThreadID);
-}
-
 void game_renderThread()
 {
 	// Setup renderer
-	SDL_Renderer* mainRenderer = Game_SharedMemory::s_mainRenderer;
+	SDL_Renderer* mainRenderer = game_shmGet(SHM_SDL_MAIN_RENDERER);
 	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
 
 	// Setup FPS object
-	if (!Game_SharedMemory::m_fpsObject)
+	if (!game_shmGet(SHM_MISC_FPS_OBJECT))
 	{
 		Game_TextObject fpsObject(-1, 0, 100, 50, true);
 		fpsObject.setText("FPS: 0");
 
-		Game_SharedMemory::m_fpsObject = &fpsObject;
-		Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
+		game_shmPut(SHM_MISC_FPS_OBJECT, &fpsObject);
+		game_renderAddObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
 	}
 
-	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
+	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	int startTime = clock(), sleepTime = 16, frameCount = 0;
 
 	// Rendering loop
-	while (Game_SharedMemory::p_running)
+	while (game_shmGet(SHM_GAME_IS_RUNNING))
 	{
 		SDL_RenderClear(mainRenderer);
 
@@ -99,8 +88,7 @@ void game_renderThread()
 		// Draw all objects
 		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
 		{
-			Game_RenderLayer* currentLayer = &Game_SharedMemory::r_renderLayers[i];
-			LinkedListNode<Game_Object>* currentObjectNode = currentLayer->objectList;
+			LinkedListNode<Game_Object>* currentObjectNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
 			while (currentObjectNode)
 			{
 				Game_Object* currentObject = currentObjectNode->value;
@@ -122,8 +110,7 @@ void game_renderThread()
 					Game_RenderEquipment* equipment = NULL;
 					if (currentObject->worldSize.width > 0 && currentObject->worldSize.height > 0)
 					{
-						equipment = Game_Tools::createRenderEquipment(currentObject->worldSize.width,
-						        currentObject->worldSize.height);
+						equipment = game_renderCreateEquipment(currentObject->worldSize.width, currentObject->worldSize.height);
 
 						// Prepare renderer
 						SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
@@ -158,25 +145,25 @@ void game_renderThread()
 					}
 					else
 					{
-						destRect.x = currentObject->worldCoords.x - Game_SharedMemory::w_mainCamera.position.x;
-						destRect.y = currentObject->worldCoords.y - Game_SharedMemory::w_mainCamera.position.y;
+						destRect.x = currentObject->worldCoords.x - mainCamera.position.x;
+						destRect.y = currentObject->worldCoords.y - mainCamera.position.y;
 
 						// TODO: Fix zooming system
 						/* destRect.x *= Game_SharedMemory::w_zoomScale;
 						 destRect.y *= Game_SharedMemory::w_zoomScale; */
-						destRect.w = currentObject->worldSize.width * Game_SharedMemory::w_zoomScale;
-						destRect.h = currentObject->worldSize.height * Game_SharedMemory::w_zoomScale;
+						destRect.w = currentObject->worldSize.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+						destRect.h = currentObject->worldSize.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
 					}
 
 					if (destRect.w < 0)
-						destRect.w += (Game_SharedMemory::w_mainCamera.size.width + 1);
+						destRect.w += (mainCamera.size.width + 1);
 					if (destRect.h < 0)
-						destRect.h += (Game_SharedMemory::w_mainCamera.size.height + 1);
+						destRect.h += (mainCamera.size.height + 1);
 
 					if (destRect.x < 0)
-						destRect.x += (Game_SharedMemory::w_mainCamera.size.width - destRect.w + 1);
+						destRect.x += (mainCamera.size.width - destRect.w + 1);
 					if (destRect.y < 0)
-						destRect.y += (Game_SharedMemory::w_mainCamera.size.height - destRect.h + 1);
+						destRect.y += (mainCamera.size.height - destRect.h + 1);
 
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
 						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
@@ -197,18 +184,19 @@ void game_renderThread()
 			float framesPerSecond = clocksPerFrame * CLOCKS_PER_SEC;
 
 			// Display FPS if necessary
-			if (Game_SharedMemory::p_useFPSCounter)
+			if (game_shmGet(SHM_GAME_USE_FPS_COUNTER))
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << framesPerSecond;
-				Game_SharedMemory::m_fpsObject->setText(stringStream.str());
+				game_shmGet(SHM_MISC_FPS_OBJECT)->setText(stringStream.str());
 			}
 
 			// Update sleep time if necessary
-			if (Game_SharedMemory::p_targetFPS > 0)
+			int targetFps = game_shmGet(SHM_GAME_TARGET_FPS);
+			if (targetFps > 0)
 			{
-				if (framesPerSecond < Game_SharedMemory::p_targetFPS - 2 || framesPerSecond > Game_SharedMemory::p_targetFPS + 2)
-					sleepTime *= framesPerSecond / Game_SharedMemory::p_targetFPS;
+				if (framesPerSecond < targetFps - 2 || framesPerSecond > targetFps + 2)
+					sleepTime *= framesPerSecond / targetFps;
 			}
 
 			startTime = newTime;
@@ -221,11 +209,24 @@ void game_renderThread()
 	cout << "[INFO] Stopped render thread" << endl;
 }
 
-// SDL
-
-int game_initializeSDL(string windowTitle)
+void game_startRenderThread()
 {
-	if (Game_SharedMemory::s_SDLInitialized)
+	game_shmPut(SHM_GAME_IS_RUNNING, true);
+
+	if ((g_renderThreadID = game_startThread(game_renderThread)))
+		cout << "[ERR] Couldn't start render thread! Error code: " << g_renderThreadID << endl;
+	else
+		cout << "[INFO] Started render thread with ID " << g_renderThreadID << endl;
+}
+
+void game_joinRenderThread()
+{
+	game_joinThread(g_renderThreadID);
+}
+
+int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowStartPos)
+{
+	if (game_shmGet(SHM_SDL_INITIALIZED))
 		return -1;
 
 	// Initialize SDL
@@ -244,36 +245,36 @@ int game_initializeSDL(string windowTitle)
 
 	// Setup window
 	flags = SDL_WINDOW_RESIZABLE;
-	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	        GAME_WINDOW_STARTSIZE, flags);
+	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), windowStartPos.x, windowStartPos.y, windowSize.width,
+	        windowSize.height, flags);
 
 	// Setup renderer
 	flags = SDL_RENDERER_ACCELERATED;
 	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
 
 	// Load GUI font
-	Game_SharedMemory::m_guiFont = TTF_OpenFont(Game_Tools::getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
-	if (!Game_SharedMemory::m_guiFont)
+	TTF_Font* newFont = TTF_OpenFont(game_assetGetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
+	if (!newFont)
 		return -4;
 
-	Game_SharedMemory::s_mainRenderer = windowRenderer;
-	Game_SharedMemory::s_window = window;
-	Game_SharedMemory::s_SDLInitialized = true;
+	game_shmPut(SHM_SDL_INITIALIZED, true);
 	return 0;
 }
 
-void game_destroySDL()
+void game_cleanup()
 {
 	// Destroy renderer and window
-	SDL_DestroyRenderer(Game_SharedMemory::s_mainRenderer);
-	SDL_DestroyWindow(Game_SharedMemory::s_window);
+	SDL_DestroyRenderer(game_shmGet(SHM_SDL_MAIN_RENDERER));
+	SDL_DestroyWindow(game_shmGet(SHM_SDL_WINDOW));
 
-	Game_SharedMemory::s_window = NULL;
-	Game_SharedMemory::s_mainRenderer = NULL;
-	Game_SharedMemory::s_SDLInitialized = false;
+	game_shmPut(SHM_SDL_WINDOW, NULL);
+	game_shmPut(SHM_SDL_MAIN_RENDERER, NULL);
+	game_shmPut(SHM_SDL_INITIALIZED, false);
+
+	delete[] game_shmGet(SHM_RENDER_LAYERS);
 
 	// Destroy GUI font
-	TTF_CloseFont(Game_SharedMemory::m_guiFont);
+	TTF_CloseFont(game_shmGet(SHM_MISC_GUI_FONT));
 
 	// Quit SDL
 	SDL_Quit();

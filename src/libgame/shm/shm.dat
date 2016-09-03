@@ -1,0 +1,49 @@
+// Game shared memory definition file
+//
+// Include:     #include <file>
+// Section:     #section <name>
+// Variable:        <type> <name> = <value>;
+//                  ...
+//			    #end
+// NOTE: Any spaces present in section name will be removed!
+
+#include <stddef.h>
+#include <string>
+#include <SDL2/SDL_ttf.h>
+#include "../game_defs.h"
+#include "../game_object.h"
+
+// General variables
+#section GAME
+    bool isRunning = true;
+	int targetFps = 60;
+	int currentFps = 0;
+	bool useFpsCounter = true;
+#end
+
+// World variables
+#section WORLD
+	Game_Camera mainCamera = {{0, 0}, {0, 0}, 0, 2};
+	bool keyboardMovesCamera = true;
+	float zoomScale = 1.0;
+#end
+
+// Rendering
+#section RENDER
+	Game_RenderLayer* layers = new Game_RenderLayer[GAME_LAYER_AMOUNT];
+#end
+
+// SDL
+#section SDL
+	bool initialized = false;
+	SDL_Renderer* mainRenderer = NULL;
+	SDL_Window* window = NULL;
+#end
+
+// Miscellaneous
+#section MISC
+	std::string assetsDir = "assets";
+	TTF_Font* guiFont = NULL;
+	Game_TextObject* fpsObject = NULL;
+	Game_AdvancedObject* keyboardInputObject = NULL;
+#end

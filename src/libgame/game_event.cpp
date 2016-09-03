@@ -1,16 +1,16 @@
 #include <iostream>
-
-#include "event.h"
-#include "shared.h"
+#include "game_event.h"
+#include "game_defs.h"
+#include "game_shm.h"
 
 using namespace std;
 
 bool processCameraMovement(SDL_KeyboardEvent& event)
 {
-	if (!Game_SharedMemory::p_keyboardMovesCamera)
+	if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
 		return false;
 
-	Game_Camera& mainCamera = Game_SharedMemory::w_mainCamera;
+	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	switch (event.keysym.scancode)
 	{
 		case SDL_SCANCODE_W:
@@ -69,20 +69,20 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 		switch (event.keysym.scancode)
 		{
 			case SDL_SCANCODE_UP:
-				Game_SharedMemory::w_zoomScale += 0.1f;
+				game_shmGet(SHM_WORLD_ZOOM_SCALE) += 0.1f;
 				break;
 			case SDL_SCANCODE_DOWN:
-				if (Game_SharedMemory::w_zoomScale)
-					Game_SharedMemory::w_zoomScale -= 0.1f;
+				if (game_shmGet(SHM_WORLD_ZOOM_SCALE))
+					game_shmGet(SHM_WORLD_ZOOM_SCALE) -= 0.1f;
 				break;
 			case SDL_SCANCODE_SPACE:
 				if (event.keysym.mod & KMOD_LSHIFT)
 				{
-					if (Game_SharedMemory::w_mainCamera.movementSpeed > 1)
-						Game_SharedMemory::w_mainCamera.movementSpeed -= 1;
+					if (game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed > 1)
+						game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed -= 1;
 				}
 				else
-					Game_SharedMemory::w_mainCamera.movementSpeed += 1;
+					game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed += 1;
 
 				break;
 			default:
@@ -122,10 +122,10 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 		switch (event.keysym.scancode)
 		{
 			case SDL_SCANCODE_R:
-				Game_SharedMemory::w_mainCamera.position.x = 0;
-				Game_SharedMemory::w_mainCamera.position.y = 0;
-				Game_SharedMemory::w_mainCamera.movementSpeed = 2;
-				Game_SharedMemory::w_zoomScale = 1;
+				game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x = 0;
+				game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y = 0;
+				game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed = 2;
+				game_shmGet(SHM_WORLD_ZOOM_SCALE) = 1;
 				break;
 			case SDL_SCANCODE_F11:
 				if (event.type == SDL_KEYDOWN)
@@ -133,7 +133,7 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 					static int fullScreen = 0;
 					fullScreen = (!fullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
-					SDL_SetWindowFullscreen(Game_SharedMemory::s_window, fullScreen);
+					SDL_SetWindowFullscreen(game_shmGet(SHM_SDL_WINDOW), fullScreen);
 				}
 				break;
 			default:
@@ -157,10 +157,10 @@ void game_processKeyboardEvent(SDL_Event& event)
 		return;
 
 	// Forward event to input object
-	if (Game_SharedMemory::m_keyboardInputObject)
+	if (game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT))
 	{
 		Game_ObjectEvent objectEvent(&event);
-		Game_SharedMemory::m_keyboardInputObject->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
+		game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
 	}
 }
 
@@ -171,19 +171,19 @@ void game_processMouseEvent(SDL_Event& event)
 	int clickedY = event.button.y;
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		LinkedListNode<Game_Object>* currentNode = Game_SharedMemory::r_renderLayers[i].objectList;
+		LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
 		while (currentNode)
 		{
 			Game_AdvancedObject* object = NULL;
 			if ((object = dynamic_cast<Game_AdvancedObject*>(currentNode->value)))
 			{
-				int realX = object->worldCoords.x - Game_SharedMemory::w_mainCamera.position.x;
-				int realY = object->worldCoords.y - Game_SharedMemory::w_mainCamera.position.y;
-				int realWidth = object->worldSize.width * Game_SharedMemory::w_zoomScale;
-				int realHeight = object->worldSize.height * Game_SharedMemory::w_zoomScale;
+				int realX = object->worldCoords.x - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x;
+				int realY = object->worldCoords.y - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y;
+				int realWidth = object->worldSize.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+				int realHeight = object->worldSize.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
 
 				if ((clickedX >= realX) && (clickedX <= (realX + realWidth)) && (clickedY >= realY)
-						&& (clickedY <= realY + realHeight))
+				        && (clickedY <= realY + realHeight))
 				{
 					// Create Game_MouseClickedEvent
 					Game_MouseClickedEvent mouseClickedEvent(&event);
@@ -206,15 +206,15 @@ void game_processWindowEvent(SDL_Event& event)
 	{
 		case SDL_WINDOWEVENT_SIZE_CHANGED:
 			int w, h;
-			SDL_GetWindowSize(Game_SharedMemory::s_window, &w, &h);
+			SDL_GetWindowSize(game_shmGet(SHM_SDL_WINDOW), &w, &h);
 
-			Game_SharedMemory::w_mainCamera.size.width = w;
-			Game_SharedMemory::w_mainCamera.size.height = h;
+			game_shmGet(SHM_WORLD_MAIN_CAMERA).size.width = w;
+			game_shmGet(SHM_WORLD_MAIN_CAMERA).size.height = h;
 
-			SDL_RenderClear(Game_SharedMemory::s_mainRenderer);
+			SDL_RenderClear(game_shmGet(SHM_SDL_MAIN_RENDERER));
 			break;
 		case SDL_WINDOWEVENT_CLOSE:
-			Game_SharedMemory::p_running = false;
+			game_shmPut(SHM_GAME_IS_RUNNING, false);
 			break;
 	}
 }

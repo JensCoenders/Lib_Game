@@ -1,4 +1,6 @@
-Debug/
-Release/
-build/
-.settings/
+/.settings/
+/bin/
+/out/
+/include/
+/lib/
+/src/libgame/shm/shm_generated.*

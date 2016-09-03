@@ -1,7 +1,8 @@
 #include <iostream>
 #include <sstream>
-
 #include "testgame.h"
+
+using namespace std;
 
 Game_TextObject* g_textDisplay;
 int g_lastTurn = 1;
@@ -167,7 +168,7 @@ void tttBackgroundClicked(Game_AdvancedObject& object, Game_ObjectEvent& event)
 		string textureName = (g_lastTurn == 1) ? "cross" : "circle";
 		textureName += ".png";
 		g_tttObjects[boardRow * 3 + boardColumn]->setRenderPars(
-		        new Game_RP_ImageTexture(Game_Tools::getAssetPath(textureName, "textures")));
+		        new Game_RP_ImageTexture(game_assetGetPath(textureName, "textures")));
 
 		g_tttBoard[boardRow * 3 + boardColumn] = g_lastTurn;
 		g_lastTurn = (g_lastTurn == 1 ? 2 : 1);
@@ -217,9 +218,9 @@ void speedLabFU(Game_Object& object)
 	Game_TextObject& advancedObject = (Game_TextObject&) object;
 
 	static int lastMovementSpeed = 0;
-	if (lastMovementSpeed != Game_SharedMemory::w_mainCamera.movementSpeed)
+	if (lastMovementSpeed != game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed)
 	{
-		lastMovementSpeed = Game_SharedMemory::w_mainCamera.movementSpeed;
+		lastMovementSpeed = game_shmGet(SHM_WORLD_MAIN_CAMERA).movementSpeed;
 
 		ostringstream stream;
 		stream << "Camera movement speed: " << lastMovementSpeed;
@@ -230,9 +231,9 @@ void speedLabFU(Game_Object& object)
 void zoomScaleLabFU(Game_Object& object)
 {
 	static double lastZoomScale = 0;
-	if (lastZoomScale != Game_SharedMemory::w_zoomScale)
+	if (lastZoomScale != game_shmGet(SHM_WORLD_ZOOM_SCALE))
 	{
-		lastZoomScale = Game_SharedMemory::w_zoomScale;
+		lastZoomScale = game_shmGet(SHM_WORLD_ZOOM_SCALE);
 
 		ostringstream stream;
 		stream << "Zoom scale: " << lastZoomScale;
@@ -243,7 +244,7 @@ void zoomScaleLabFU(Game_Object& object)
 void runTestGame()
 {
 	// Initialize game
-	Game_SharedMemory::p_keyboardMovesCamera = false;
+	game_shmPut(SHM_WORLD_KEYBOARD_MOVES_CAMERA, false);
 
 	g_tttBoard = new int[9];
 	g_tttObjects = new Game_Object*[9];
@@ -254,15 +255,15 @@ void runTestGame()
 			g_tttBoard[i * 3 + j] = 0;
 
 			g_tttObjects[i * 3 + j] = new Game_Object(j * 51 + 5, i * 51 + 32, 47, 47, true);
-			g_tttObjects[i * 3 + j]->setTextureUpdate(Game_Tools::imageTextureObjectTU);
-			Game_Tools::addGameObject(g_tttObjects[i * 3 + j], GAME_LAYER_LEVEL_MID_1);
+			g_tttObjects[i * 3 + j]->setTextureUpdate(imageTextureObjectTU);
+			game_renderAddObject(g_tttObjects[i * 3 + j], GAME_LAYER_LEVEL_MID_1);
 		}
 	}
 
 	// Debug objects
 	Game_TextObject fpsObject(5, -51, 0, 0, true);
 	fpsObject.setText("FPS: 0");
-	Game_SharedMemory::m_fpsObject = &fpsObject;
+	game_shmPut(SHM_MISC_FPS_OBJECT, &fpsObject);
 
 	Game_TextObject speedLab(5, -26, 0, 0, true);
 	speedLab.setFrameUpdate(speedLabFU);
@@ -270,30 +271,30 @@ void runTestGame()
 	Game_TextObject zoomScaleLab(5, -1, 0, 0, true);
 	zoomScaleLab.setFrameUpdate(zoomScaleLabFU);
 
-	Game_Tools::addGameObject(&fpsObject, GAME_LAYER_GUI_BACKGROUND);
-	Game_Tools::addGameObject(&speedLab, GAME_LAYER_GUI_BACKGROUND);
-	Game_Tools::addGameObject(&zoomScaleLab, GAME_LAYER_GUI_BACKGROUND);
+	game_renderAddObject(&fpsObject, GAME_LAYER_GUI_BACKGROUND);
+	game_renderAddObject(&speedLab, GAME_LAYER_GUI_BACKGROUND);
+	game_renderAddObject(&zoomScaleLab, GAME_LAYER_GUI_BACKGROUND);
 
 	// Game objects
 	Game_Object background(0, 0, -1, -1, true);
-	background.setTextureUpdate(Game_Tools::imageTextureObjectTU);
-	background.setRenderPars(new Game_RP_ImageTexture(Game_Tools::getAssetPath("background.png", "textures")));
+	background.setTextureUpdate(imageTextureObjectTU);
+	background.setRenderPars(new Game_RP_ImageTexture(game_assetGetPath("background.png", "textures")));
 
 	Game_AdvancedObject tttBackground(5, 32, 150, 150, true);
-	tttBackground.setTextureUpdate(Game_Tools::imageTextureObjectTU);
-	tttBackground.setRenderPars(new Game_RP_ImageTexture(Game_Tools::getAssetPath("tic_tac_toe_background.png", "textures")));
+	tttBackground.setTextureUpdate(imageTextureObjectTU);
+	tttBackground.setRenderPars(new Game_RP_ImageTexture(game_assetGetPath("tic_tac_toe_background.png", "textures")));
 	tttBackground.mouseClickedFunc = tttBackgroundClicked;
 
 	Game_TextObject textDisplay(5, 0, 0, 0, true);
 	textDisplay.setFrameUpdate(textDisplayFU);
 	g_textDisplay = &textDisplay;
 
-	Game_Tools::addGameObject(&background, GAME_LAYER_LEVEL_BACKGROUND);
-	Game_Tools::addGameObject(&tttBackground, GAME_LAYER_LEVEL_MID_2);
-	Game_Tools::addGameObject(&textDisplay, GAME_LAYER_GUI_FOREGROUND);
+	game_renderAddObject(&background, GAME_LAYER_LEVEL_BACKGROUND);
+	game_renderAddObject(&tttBackground, GAME_LAYER_LEVEL_MID_2);
+	game_renderAddObject(&textDisplay, GAME_LAYER_GUI_FOREGROUND);
 
 	// Main loop
-	game_mainLoop();
+	game_runMainLoop();
 
 	// Clean up
 	for (int i = 0; i < 3; i++)

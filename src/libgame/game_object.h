@@ -1,31 +1,27 @@
 #ifndef GAME_OBJECT_H
 #define GAME_OBJECT_H
 
-#include <SDL2/SDL.h>
-
-#include "types.h"
-
-using namespace std;
+#include "game_types.h"
 
 /* Type definitions */
 
 class Game_Object;
 
-typedef struct game_renderlayer
+typedef struct Game_RenderLayer
 {
 	public:
 		int objectCount;
 		LinkedListNode<Game_Object>* objectList;
 
-		game_renderlayer();
-		~game_renderlayer();
+		Game_RenderLayer();
+		~Game_RenderLayer();
 
 } Game_RenderLayer;
 
 typedef void (*Game_ObjectFUFunc)(Game_Object& object);
 typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipment* equipment);
 
-class Game_Object
+typedef class Game_Object
 {
 	public:
 		// Misc vars
@@ -75,9 +71,9 @@ class Game_Object
 		Game_ObjectFUFunc m_frameUpdateFunc;
 		Game_ObjectTUFunc m_textureUpdateFunc;
 
-};
+} Game_Object;
 
-class Game_TextObject : public Game_Object
+typedef class Game_TextObject : public Game_Object
 {
 	public:
 		// Text vars
@@ -85,9 +81,9 @@ class Game_TextObject : public Game_Object
 		bool autoSize;
 
 		// Text funcs
-		string getText();
+		std::string getText();
 		SDL_Color getTextColor();
-		void setText(string text);
+		void setText(std::string text);
 		void setTextColor(SDL_Color color);
 
 		SDL_Surface* renderText();
@@ -95,15 +91,15 @@ class Game_TextObject : public Game_Object
 		Game_TextObject(int x, int y, int w, int h, bool isStatic = false);
 	protected:
 		// Text vars
-		string m_text;
+		std::string m_text;
 		SDL_Color m_textColor;
 
-};
+} Game_TextObject;
 
 class Game_AdvancedObject;
 typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, Game_ObjectEvent& eventData);
 
-class Game_AdvancedObject : public Game_TextObject
+typedef class Game_AdvancedObject : public Game_TextObject
 {
 	public:
 		// Event vars
@@ -114,23 +110,23 @@ class Game_AdvancedObject : public Game_TextObject
 		bool callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event);
 
 		// Property funcs
-		int getIntProperty(string name, int defaultValue);
-		bool getBoolProperty(string name, bool defaultValue);
-		string getStringProperty(string name, string defaultValue);
+		int getIntProperty(std::string name, int defaultValue);
+		bool getBoolProperty(std::string name, bool defaultValue);
+		std::string getStringProperty(std::string name, std::string defaultValue);
 
 		template<typename T>
-		void setProperty(string name, T value);
+		void setProperty(std::string name, T value);
 
 		Game_AdvancedObject(int x, int y, int w, int h, bool isStatic = false);
 		~Game_AdvancedObject();
 	protected:
 		// Misc funcs
-		LinkedListNode<Game_ObjectProperty>* findPropertyByName(string name);
+		LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
 
-};
+} Game_AdvancedObject;
 
 template<typename T>
-void Game_AdvancedObject::setProperty(string name, T value)
+void Game_AdvancedObject::setProperty(std::string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));

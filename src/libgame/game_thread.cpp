@@ -1,7 +1,6 @@
 #include <iostream>
 #include <windows.h>
-
-#include "thread.h"
+#include "game_thread.h"
 
 using namespace std;
 

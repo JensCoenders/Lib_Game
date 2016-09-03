@@ -1,17 +1,16 @@
 #include <iostream>
-
-#include "shared.h"
-#include "object.h"
+#include "game_object.h"
+#include "game_shm.h"
 
 using namespace std;
 
-game_renderlayer::game_renderlayer()
+Game_RenderLayer::Game_RenderLayer()
 {
 	objectCount = 0;
 	objectList = NULL;
 }
 
-game_renderlayer::~game_renderlayer()
+Game_RenderLayer::~Game_RenderLayer()
 {
 	delete objectList;   // Deleting the first object node will destroy the whole linked list
 }
@@ -140,7 +139,7 @@ SDL_Surface* Game_TextObject::renderText()
 		return NULL;
 
 	// Create text
-	SDL_Surface* textSurface = TTF_RenderText_Blended(Game_SharedMemory::m_guiFont, m_text.c_str(), m_textColor);
+	SDL_Surface* textSurface = TTF_RenderText_Blended(game_shmGet(SHM_MISC_GUI_FONT), m_text.c_str(), m_textColor);
 	return textSurface;
 }
 

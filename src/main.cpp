@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include "testgame.h"
 
 using namespace std;
@@ -11,7 +10,7 @@ int initialize()
 	windowTitle += GAME_VERSION;
 
 	cout << "[INFO] Initializing SDL... ";
-	int returnCode = game_initializeSDL(windowTitle);
+	int returnCode = game_initialize(windowTitle, {1024, 576}, {SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED});
 	if (!returnCode)
 		cout << "[OK]" << endl;
 	else
@@ -32,7 +31,7 @@ int initialize()
 				break;
 		}
 
-		game_destroySDL();
+		game_cleanup();
 		return returnCode;
 	}
 
@@ -56,8 +55,8 @@ bool processArguments(int argc, char** argv)
 
 		if (argument == "--assets" && (i + 1) < argc)
 		{
-			Game_SharedMemory::m_assetsFolder = argv[++i];
-			cout << "[INFO] Setting assets folder to '" << Game_SharedMemory::m_assetsFolder << "'" << endl;
+			game_shmPut(SHM_MISC_ASSETS_DIR, argv[++i]);
+			cout << "[INFO] Setting assets folder to '" << game_shmGet(SHM_MISC_ASSETS_DIR) << "'" << endl;
 		}
 		else if (argument == "--help")
 		{
@@ -95,8 +94,7 @@ int main(int argc, char** argv)
 	cout << "[INFO] Stopped main thread" << endl;
 
 	// Cleanup
-	game_destroySDL();
-	delete[] Game_SharedMemory::r_renderLayers;
+	game_cleanup();
 
 	cout << "[INFO] Cleanup complete";
 	return 0;
