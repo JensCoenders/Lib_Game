@@ -10,7 +10,7 @@ void game_cleanup();
 
 // Rendering
 void game_startRenderThread();
-void game_joinRenderThread();
+void game_stopRenderThread(bool join);
 
 // Misc
 void game_runMainLoop();

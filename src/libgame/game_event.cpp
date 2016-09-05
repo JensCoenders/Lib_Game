@@ -1,6 +1,7 @@
 #include <iostream>
-#include "game_event.h"
+
 #include "game_defs.h"
+#include "game_event.h"
 #include "game_shm.h"
 
 using namespace std;
@@ -157,10 +158,10 @@ void game_processKeyboardEvent(SDL_Event& event)
 		return;
 
 	// Forward event to input object
-	if (game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT))
+	if (game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT) && game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->isModuleEnabled(MODULE_EVENT))
 	{
 		Game_ObjectEvent objectEvent(&event);
-		game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
+		game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->eventModule->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
 	}
 }
 
@@ -174,13 +175,13 @@ void game_processMouseEvent(SDL_Event& event)
 		LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
 		while (currentNode)
 		{
-			Game_AdvancedObject* object = NULL;
-			if ((object = dynamic_cast<Game_AdvancedObject*>(currentNode->value)))
+			Game_Object* object = currentNode->value;
+			if (object->isModuleEnabled(MODULE_EVENT))
 			{
-				int realX = object->worldCoords.x - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x;
-				int realY = object->worldCoords.y - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y;
-				int realWidth = object->worldSize.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-				int realHeight = object->worldSize.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+				int realX = object->coords.x - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x;
+				int realY = object->coords.y - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y;
+				int realWidth = object->size.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+				int realHeight = object->size.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
 
 				if ((clickedX >= realX) && (clickedX <= (realX + realWidth)) && (clickedY >= realY)
 				        && (clickedY <= realY + realHeight))
@@ -190,7 +191,7 @@ void game_processMouseEvent(SDL_Event& event)
 					mouseClickedEvent.relX = clickedX - realX;
 					mouseClickedEvent.relY = clickedY - realY;
 
-					((Game_AdvancedObject*) object)->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
+					object->eventModule->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
 					return;
 				}
 			}

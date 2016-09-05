@@ -1,11 +1,12 @@
 #include <iostream>
 #include <SDL2/SDL_image.h>
-#include "game_defs.h"
+
+#include <game_defs.h>
 #include "game_tools.h"
 
 using namespace std;
 
-bool game_renderAddObject(Game_Object* object, int layerID)
+bool game_addGameObject(Game_Object* object, int layerID)
 {
 	if (layerID >= GAME_LAYER_AMOUNT)
 	{
@@ -13,18 +14,18 @@ bool game_renderAddObject(Game_Object* object, int layerID)
 		return false;
 	}
 
-	Game_RenderLayer& layer = game_shmGet(SHM_RENDER_LAYERS)[layerID];
+	Game_RenderLayer* layer = &game_shmGet(SHM_RENDER_LAYERS)[layerID];
 	LinkedListNode<Game_Object>* newNode = new LinkedListNode<Game_Object>();
 	newNode->value = object;
-	newNode->nextNode = layer.objectList;
+	newNode->nextNode = layer->objectList;
 
-	layer.objectList = newNode;
-	layer.objectCount++;
+	layer->objectList = newNode;
+	layer->objectCount++;
 
 	return true;
 }
 
-bool game_renderRemoveObject(Game_Object* object)
+bool game_removeGameObject(Game_Object* object)
 {
 	Game_RenderLayer* renderLayer = NULL;
 	LinkedListNode<Game_Object>* targetNode = NULL;
@@ -47,7 +48,7 @@ bool game_renderRemoveObject(Game_Object* object)
 	return false;
 }
 
-Game_Rect game_renderGetTextSize(string text)
+Game_Rect game_getTextSize(string text)
 {
 	TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT);
 	Game_Rect dest = {0, 0};
@@ -58,7 +59,7 @@ Game_Rect game_renderGetTextSize(string text)
 	return dest;
 }
 
-Game_RenderEquipment* game_renderCreateEquipment(int surfaceWidth, int surfaceHeight)
+Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight)
 {
 	// Create surface
 	SDL_Surface* surface = SDL_CreateRGBSurface(0, surfaceWidth, surfaceHeight, 32, GAME_SURFACE_RMASK, GAME_SURFACE_GMASK,
@@ -81,7 +82,7 @@ Game_RenderEquipment* game_renderCreateEquipment(int surfaceWidth, int surfaceHe
 	return new Game_RenderEquipment(renderer, surface);
 }
 
-Game_Object* game_findObjectByID(int objectID, Game_RenderLayer** outputLayer, LinkedListNode<Game_Object>** outputNode)
+Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer, LinkedListNode<Game_Object>** outputNode)
 {
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
@@ -109,12 +110,10 @@ Game_Object* game_findObjectByID(int objectID, Game_RenderLayer** outputLayer, L
 
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
 {
-	Game_RP_ImageTexture* renderPars = dynamic_cast<Game_RP_ImageTexture*>(object.getRenderPars());
-	if (!renderPars)
-		return NULL;
+	if (!object.isModuleEnabled(MODULE_IMAGE_BACKGROUND))
+			return NULL;
 
-	SDL_Surface* imageTextureSurface = IMG_Load(renderPars->imageTexturePath.c_str());
-
+	SDL_Surface* imageTextureSurface = IMG_Load(object.imageBackgroundModule->getTexturePath().c_str());
 	if (!imageTextureSurface)
 	{
 		cout << "[ERR]: " << IMG_GetError() << endl;
@@ -122,4 +121,27 @@ SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equ
 	}
 
 	return imageTextureSurface;
+}
+
+SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment)
+{
+	if (!object.isModuleEnabled(MODULE_TEXT))
+		return NULL;
+
+	SDL_Surface* textSurface = object.textModule->renderText();
+	if (!textSurface)
+		return NULL;
+	else if (object.textModule->autoSize)
+	{
+		// TODO: Fix ugly text font due to scaling
+		object.size.width = textSurface->w * object.textModule->textScaling;
+		object.size.height = textSurface->h * object.textModule->textScaling;
+	}
+
+	return textSurface;
+}
+
+string combineStringPath(string firstString)
+{
+	return firstString;
 }

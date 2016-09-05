@@ -62,42 +62,6 @@ typedef struct Game_MouseClickedEvent : public Game_ObjectEvent
 
 /* Rendering */
 
-typedef enum Game_RenderMode
-{
-	RENDERMODE_STATIC_BACKGROUND,
-	RENDERMODE_IMAGE_TEXTURE,
-	RENDERMODE_CUSTOM
-
-} Game_RenderMode;
-
-struct Game_RenderPars
-{
-	public:
-		Game_RenderMode renderMode;
-
-		Game_RenderPars(Game_RenderMode renderMode = RENDERMODE_CUSTOM);
-		virtual ~Game_RenderPars();
-
-};
-
-typedef struct Game_RP_StaticBackground : public Game_RenderPars
-{
-	public:
-		SDL_Color backgroundColor;
-
-		Game_RP_StaticBackground(SDL_Color backgroundColor);
-
-} Game_RP_StaticBackground;
-
-typedef struct Game_RP_ImageTexture : public Game_RenderPars
-{
-	public:
-		std::string imageTexturePath;
-
-		Game_RP_ImageTexture(std::string imageTexturePath);
-
-} Game_RP_ImageTexture;
-
 typedef struct Game_RenderEquipment
 {
 	public:

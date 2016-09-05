@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <string>
 #include <SDL2/SDL_ttf.h>
-#include "../game_defs.h"
-#include "../game_object.h"
+#include "game_defs.h"
+#include "game_object.h"
 
 // General variables
 #section GAME
@@ -44,6 +44,6 @@
 #section MISC
 	std::string assetsDir = "assets";
 	TTF_Font* guiFont = NULL;
-	Game_TextObject* fpsObject = NULL;
-	Game_AdvancedObject* keyboardInputObject = NULL;
+	Game_Object* fpsObject = NULL;
+	Game_Object* keyboardInputObject = NULL;
 #end

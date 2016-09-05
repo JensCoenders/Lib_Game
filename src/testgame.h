@@ -1,4 +1,4 @@
-#include "libgame/game.h"
+#include <game.h>
 
 #define GAME_VERSION "0.3.0"
 

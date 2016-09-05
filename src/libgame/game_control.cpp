@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+
 #include "game_control.h"
 #include "game_defs.h"
 #include "game_event.h"
@@ -44,23 +45,24 @@ void game_runMainLoop()
 	}
 
 	// Join render thread
-	game_joinRenderThread();
+	game_stopRenderThread(true);
 }
 
 void game_renderThread()
 {
 	// Setup renderer
 	SDL_Renderer* mainRenderer = game_shmGet(SHM_SDL_MAIN_RENDERER);
-	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(mainRenderer, 255, 255, 255, 0);
 
 	// Setup FPS object
 	if (!game_shmGet(SHM_MISC_FPS_OBJECT))
 	{
-		Game_TextObject fpsObject(-1, 0, 100, 50, true);
-		fpsObject.setText("FPS: 0");
+		Game_Object fpsObject(-1, 0, 100, 50, true, MODULE_TEXT);
+		fpsObject.setTextureUpdate(textObjectTextureUpdate);
+		fpsObject.textModule->setText("FPS: 0");
 
 		game_shmPut(SHM_MISC_FPS_OBJECT, &fpsObject);
-		game_renderAddObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
+		game_addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
 	}
 
 	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
@@ -94,7 +96,7 @@ void game_renderThread()
 				Game_Object* currentObject = currentObjectNode->value;
 
 				// Frame-update object
-				currentObject->frameUpdate();
+				currentObject->runFrameUpdate();
 
 				// Update texture
 				if (currentObject->needsTextureUpdate())
@@ -108,9 +110,9 @@ void game_renderThread()
 
 					// Create render equipment
 					Game_RenderEquipment* equipment = NULL;
-					if (currentObject->worldSize.width > 0 && currentObject->worldSize.height > 0)
+					if (currentObject->size.width > 0 && currentObject->size.height > 0)
 					{
-						equipment = game_renderCreateEquipment(currentObject->worldSize.width, currentObject->worldSize.height);
+						equipment = game_createRenderEquipment(currentObject->size.width, currentObject->size.height);
 
 						// Prepare renderer
 						SDL_SetRenderDrawColor(equipment->softwareRenderer, 0, 0, 0, 255);
@@ -118,11 +120,14 @@ void game_renderThread()
 					}
 
 					// Update object texture
-					SDL_Surface* surface = currentObject->textureUpdate(equipment);
+					SDL_Surface* surface = currentObject->runTextureUpdate(equipment);
 					if (surface)
 					{
 						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
-						currentObject->satisfyTextureUpdate();
+						if (!currentObject->lastRenderedTexture)
+							cout << "[ERR] Couldn't create texture from surface: " << SDL_GetError() << endl;
+						else
+							currentObject->satisfyTextureUpdate();
 
 						if (equipment && surface != equipment->surface)
 							SDL_FreeSurface(surface);
@@ -133,26 +138,26 @@ void game_renderThread()
 				}
 
 				// Draw object
-				if (currentObject->lastRenderedTexture)
+				if (currentObject->isVisible && currentObject->lastRenderedTexture)
 				{
 					SDL_Rect destRect;
 					if (currentObject->isStatic)
 					{
-						destRect.x = currentObject->worldCoords.x;
-						destRect.y = currentObject->worldCoords.y;
-						destRect.w = currentObject->worldSize.width;
-						destRect.h = currentObject->worldSize.height;
+						destRect.x = currentObject->coords.x;
+						destRect.y = currentObject->coords.y;
+						destRect.w = currentObject->size.width;
+						destRect.h = currentObject->size.height;
 					}
 					else
 					{
-						destRect.x = currentObject->worldCoords.x - mainCamera.position.x;
-						destRect.y = currentObject->worldCoords.y - mainCamera.position.y;
+						destRect.x = currentObject->coords.x - mainCamera.position.x;
+						destRect.y = currentObject->coords.y - mainCamera.position.y;
 
 						// TODO: Fix zooming system
 						/* destRect.x *= Game_SharedMemory::w_zoomScale;
 						 destRect.y *= Game_SharedMemory::w_zoomScale; */
-						destRect.w = currentObject->worldSize.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-						destRect.h = currentObject->worldSize.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+						destRect.w = currentObject->size.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
+						destRect.h = currentObject->size.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
 					}
 
 					if (destRect.w < 0)
@@ -184,11 +189,11 @@ void game_renderThread()
 			float framesPerSecond = clocksPerFrame * CLOCKS_PER_SEC;
 
 			// Display FPS if necessary
-			if (game_shmGet(SHM_GAME_USE_FPS_COUNTER))
+			if (game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_TEXT) && game_shmGet(SHM_GAME_USE_FPS_COUNTER))
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << framesPerSecond;
-				game_shmGet(SHM_MISC_FPS_OBJECT)->setText(stringStream.str());
+				game_shmGet(SHM_MISC_FPS_OBJECT)->textModule->setText(stringStream.str());
 			}
 
 			// Update sleep time if necessary
@@ -219,9 +224,12 @@ void game_startRenderThread()
 		cout << "[INFO] Started render thread with ID " << g_renderThreadID << endl;
 }
 
-void game_joinRenderThread()
+void game_stopRenderThread(bool join)
 {
-	game_joinThread(g_renderThreadID);
+	game_shmPut(SHM_GAME_IS_RUNNING, false);
+
+	if (join)
+		game_joinThread(g_renderThreadID);
 }
 
 int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowStartPos)
@@ -250,13 +258,17 @@ int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowS
 
 	// Setup renderer
 	flags = SDL_RENDERER_ACCELERATED;
-	SDL_Renderer* windowRenderer = SDL_CreateRenderer(window, -1, flags);
+	SDL_Renderer* mainRenderer = SDL_CreateRenderer(window, -1, flags);
 
 	// Load GUI font
-	TTF_Font* newFont = TTF_OpenFont(game_assetGetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
+	TTF_Font* newFont = TTF_OpenFont(game_getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
 	if (!newFont)
 		return -4;
 
+	game_shmGet(SHM_WORLD_MAIN_CAMERA).size = windowSize;
+	game_shmPut(SHM_SDL_WINDOW, window);
+	game_shmPut(SHM_SDL_MAIN_RENDERER, mainRenderer);
+	game_shmPut(SHM_MISC_GUI_FONT, newFont);
 	game_shmPut(SHM_SDL_INITIALIZED, true);
 	return 0;
 }

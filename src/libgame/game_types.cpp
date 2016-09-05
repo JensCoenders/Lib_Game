@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+
 #include "game_types.h"
 
 using namespace std;
@@ -30,27 +31,6 @@ Game_MouseClickedEvent::Game_MouseClickedEvent(SDL_Event* event) :
 	this->pressed = (event->button.state == SDL_PRESSED);
 	this->relX = 0;
 	this->relY = 0;
-}
-
-Game_RenderPars::Game_RenderPars(Game_RenderMode renderMode)
-{
-	this->renderMode = renderMode;
-}
-
-Game_RenderPars::~Game_RenderPars()
-{
-}
-
-Game_RP_StaticBackground::Game_RP_StaticBackground(SDL_Color backgroundColor) :
-		Game_RenderPars(RENDERMODE_STATIC_BACKGROUND)
-{
-	this->backgroundColor = backgroundColor;
-}
-
-Game_RP_ImageTexture::Game_RP_ImageTexture(string imageTexturePath) :
-		Game_RenderPars(RENDERMODE_IMAGE_TEXTURE)
-{
-	this->imageTexturePath = imageTexturePath;
 }
 
 Game_RenderEquipment::Game_RenderEquipment(SDL_Renderer* renderer, SDL_Surface* surface)

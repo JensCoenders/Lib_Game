@@ -1,29 +1,39 @@
-# Get sources and set objects
-GAME_EXEC_SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-GAME_EXEC_OBJS := $(subst $(SRC_DIR),$(OUT_DIR),$(patsubst %.cpp,%.o,$(GAME_EXEC_SRCS))) $(OUT_DIR)/resources.o
+.PHONY += jensgame
 
-GAME_VERSION_FILE := $(SRC_DIR)/testgame.h
+JENSGAME_OBJS := $(patsubst %.cpp,%.o,$(wildcard $(SRCDIR)/*.cpp))
+JENSGAME_OBJS := $(subst $(SRCDIR),$(OUTDIR),$(JENSGAME_OBJS)) $(OUTDIR)/resources.o
+
+SDL_DLL_TARGETS := $(wildcard $(RESDIR)/dll/*.dll)
+SDL_DLL_TARGETS := $(subst $(RESDIR)/dll,$(CONF_BINDIR),$(SDL_DLL_TARGETS))
+
+JENSGAME_VERSION_FILE := $(SRCDIR)/testgame.h
+
+SUBDIRS := libgame
+
+# Shorthand command line targets
+jensgame: $(JENSGAME)
 
 # Rule for generating game executable
-$(BIN_DIR)/Game.exe: $(GAME_EXEC_OBJS) $(LIB_DIR)/$(CONFIG)/libgame.a $(SDL_DLLS)
+$(JENSGAME): $(JENSGAME_OBJS) $(LIBGAME) $(SDL_DLL_TARGETS)
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
-	+g++ -o $@ $(filter %.o,$^) $(DEFAULT_LD_FLAGS) -lgame $(DEFAULT_LD_LIBS)
+	+g++ -o $@ $(filter %.o,$^) $(addprefix -L,$(DEFAULT_LIB_DIRS)) -lgame $(SDL_LIBS)
 
-# Rule for updating version in resource file
-$(RES_DIR)/resources.rc: $(GAME_VERSION_FILE)
-#	+powershell.exe -File "scripts\update_version.ps1" -ResourceFile $@ -VersionFile $<
+$(JENSGAME_OBJS): | inc
 
 # Rule for building resource file
-$(OUT_DIR)/resources.o: $(RES_DIR)/resources.rc
+$(OUTDIR)/resources.o: $(RESDIR)/resources.rc
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
 	+windres $(subst /,\\,$<) -o $(subst /,\\,$@)
-	
+
+# Rule for updating version in resource file
+$(RESDIR)/resources.rc: $(JENSGAME_VERSION_FILE)
+#	+powershell.exe -File "scripts\update_version.ps1" -ResourceFile $@ -VersionFile $<
+
 # Rule for copying DLL files to bin directory
-$(BIN_DIR)/%.dll: $(RES_DIR)/dll/%.dll
+$(CONF_BINDIR)/%.dll: $(RESDIR)/dll/%.dll
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
-	+copy $(subst /,\\,$<) $(subst /,\\,$@) >NUL
-
-include $(SRC_DIR)/libgame/Makefile
+	+mklink /H $(subst /,\\,$@) $(subst /,\\,$<) >NUL
+	
