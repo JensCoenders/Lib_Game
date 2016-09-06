@@ -112,6 +112,7 @@ Game_Object::Game_Object(int x, int y, int w, int h)
 	coords.y = y;
 	size.width = w;
 	size.height = h;
+	rotation = 0.0;
 
 	isStatic = false;
 	isVisible = true;
@@ -162,100 +163,3 @@ Game_RenderLayer::~Game_RenderLayer()
 {
 	delete objectList;  	 // Deleting the first object node will destroy the whole linked list
 }
-
-/*
- bool Game_AdvancedObject::callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event)
- {
- switch (type)
- {
- case EVENT_TYPE_TYPED:
- if (keyTypedFunc)
- keyTypedFunc(*this, event);
- else
- return false;
-
- break;
- case EVENT_TYPE_CLICKED:
- if (mouseClickedFunc)
- mouseClickedFunc(*this, (Game_MouseClickedEvent&) event);
- else
- return false;
-
- break;
- default:
- return false;
- }
- return true;
- }
-
- int Game_AdvancedObject::getIntProperty(string name, int defaultValue)
- {
- LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
- // Return default value if property was not found
- if (!currentProperty)
- return defaultValue;
-
- return currentProperty->value->getIntValue();
- }
-
- bool Game_AdvancedObject::getBoolProperty(string name, bool defaultValue)
- {
- LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
- // Return default value if property was not found
- if (!currentProperty)
- return defaultValue;
-
- return currentProperty->value->getBoolValue();
- }
-
- string Game_AdvancedObject::getStringProperty(string name, string defaultValue)
- {
- LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
- // Return default value if property was not found
- if (!currentProperty)
- return defaultValue;
-
- return currentProperty->value->getStringValue();
- }
-
- LinkedListNode<Game_ObjectProperty>* Game_AdvancedObject::findPropertyByName(string name)
- {
- // Convert name to lowercase
- for (unsigned int i = 0; i < name.length(); i++)
- name[i] = tolower(name.at(i));
-
- // Get matching property
- LinkedListNode<Game_ObjectProperty>* currentNode = m_properties;
- while (currentNode)
- {
- if (currentNode->value->name == name)
- return currentNode;
-
- currentNode = currentNode->nextNode;
- }
-
- return NULL;
- }
-
- Game_AdvancedObject::Game_AdvancedObject(int x, int y, int w, int h, bool isStatic) :
- Game_TextObject(x, y, w, h, isStatic)
- {
- keyTypedFunc = NULL;
- mouseClickedFunc = NULL;
- }
-
- Game_AdvancedObject::~Game_AdvancedObject()
- {
- LinkedListNode<Game_ObjectProperty>* currentNode = m_properties;
- LinkedListNode<Game_ObjectProperty>* tempNode = NULL;
- while (currentNode)
- {
- tempNode = currentNode->nextNode;
- delete currentNode;
- currentNode = tempNode;
- }
- }
- */

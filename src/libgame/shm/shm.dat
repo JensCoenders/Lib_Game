@@ -23,7 +23,9 @@
 
 // World variables
 #section WORLD
-	Game_Camera mainCamera = {{0, 0}, {0, 0}, 0, 2};
+	Game_Camera mainCamera = {{0, 0}, {0, 0}, {0, 2}};
+	Game_Object* centeredObject = NULL;
+	Game_MovementPars centeredObjectMovement = {0, 2};
 	bool keyboardMovesCamera = true;
 	float zoomScale = 1.0;
 #end

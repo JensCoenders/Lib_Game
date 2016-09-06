@@ -90,9 +90,62 @@ Game_ModuleImageBackground::Game_ModuleImageBackground(Game_Object* parent) :
 {
 }
 
+int Game_ModuleProperty::getIntProperty(string name, int defaultValue)
+{
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+
+	// Return default value if property was not found
+	if (!currentProperty)
+		return defaultValue;
+
+	return currentProperty->value->getIntValue();
+}
+
+bool Game_ModuleProperty::getBoolProperty(string name, bool defaultValue)
+{
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+
+	// Return default value if property was not found
+	if (!currentProperty)
+		return defaultValue;
+
+	return currentProperty->value->getBoolValue();
+}
+
+string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
+{
+	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+
+	// Return default value if property was not found
+	if (!currentProperty)
+		return defaultValue;
+
+	return currentProperty->value->getStringValue();
+}
+
+LinkedListNode<Game_ObjectProperty>* Game_ModuleProperty::findPropertyByName(string name)
+{
+	// Convert name to lowercase
+	for (unsigned int i = 0; i < name.length(); i++)
+		name[i] = tolower(name.at(i));
+
+	// Get matching property
+	LinkedListNode<Game_ObjectProperty>* currentNode = propertyList;
+	while (currentNode)
+	{
+		if (currentNode->value->name == name)
+			return currentNode;
+
+		currentNode = currentNode->nextNode;
+	}
+
+	return NULL;
+}
+
 Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 		Game_Module(parent)
 {
+	propertyList = NULL;
 }
 
 string Game_ModuleText::getText()

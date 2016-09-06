@@ -65,26 +65,38 @@ void game_renderThread()
 		game_addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
 	}
 
-	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
-	int startTime = clock(), sleepTime = 16, frameCount = 0;
+	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
+	Game_Object* centeredObject = game_shmGet(SHM_WORLD_CENTERED_OBJECT);
+	Game_MovementPars* targetMovement = &mainCamera->movementPars;
+	Game_Point* targetPos = &mainCamera->position;
 
 	// Rendering loop
+	int startTime = clock(), sleepTime = 16, frameCount = 0;
 	while (game_shmGet(SHM_GAME_IS_RUNNING))
 	{
 		SDL_RenderClear(mainRenderer);
 
-		// Update camera
-		if (mainCamera.movementDirection)
-		{
-			if (mainCamera.movementDirection & 0x1)
-				mainCamera.position.y -= mainCamera.movementSpeed;
-			else if (mainCamera.movementDirection & 0x2)
-				mainCamera.position.y += mainCamera.movementSpeed;
+		// Update moving object
+		if (targetMovement->direction & 0x1)
+			targetPos->y -= targetMovement->speed;
+		else if (targetMovement->direction & 0x2)
+			targetPos->y += targetMovement->speed;
 
-			if (mainCamera.movementDirection & 0x4)
-				mainCamera.position.x -= mainCamera.movementSpeed;
-			else if (mainCamera.movementDirection & 0x8)
-				mainCamera.position.x += mainCamera.movementSpeed;
+		if (targetMovement->direction & 0x4)
+			targetPos->x -= targetMovement->speed;
+		else if (targetMovement->direction & 0x8)
+			targetPos->x += targetMovement->speed;
+
+		// Update camera position
+		if (centeredObject && !game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
+		{
+			targetMovement = &game_shmGet(SHM_WORLD_CENTERED_OBJECT_MOVEMENT);
+			targetPos = &game_shmGet(SHM_WORLD_CENTERED_OBJECT)->coords;
+
+			mainCamera->position.x = (mainCamera->position.x - centeredObject->size.width) / 2
+			        + centeredObject->coords.x;
+			mainCamera->position.y = (mainCamera->position.y - centeredObject->size.height) / 2
+			        + centeredObject->coords.y;
 		}
 
 		// Draw all objects
@@ -145,14 +157,25 @@ void game_renderThread()
 					{
 						destRect.x = currentObject->coords.x;
 						destRect.y = currentObject->coords.y;
+					}
+					else if (currentObject == game_shmGet(SHM_WORLD_CENTERED_OBJECT))
+					{
+						destRect.x = (mainCamera->size.width - currentObject->size.width) / 2;
+						destRect.y = (mainCamera->size.height - currentObject->size.height) / 2;
+					}
+					else
+					{
+						destRect.x = currentObject->coords.x - mainCamera->position.x;
+						destRect.y = currentObject->coords.y - mainCamera->position.y;
+					}
+
+					if (currentObject->isStatic)
+					{
 						destRect.w = currentObject->size.width;
 						destRect.h = currentObject->size.height;
 					}
 					else
 					{
-						destRect.x = currentObject->coords.x - mainCamera.position.x;
-						destRect.y = currentObject->coords.y - mainCamera.position.y;
-
 						// TODO: Fix zooming system
 						/* destRect.x *= Game_SharedMemory::w_zoomScale;
 						 destRect.y *= Game_SharedMemory::w_zoomScale; */
@@ -161,17 +184,22 @@ void game_renderThread()
 					}
 
 					if (destRect.w < 0)
-						destRect.w += (mainCamera.size.width + 1);
+						destRect.w += (mainCamera->size.width + 1);
 					if (destRect.h < 0)
-						destRect.h += (mainCamera.size.height + 1);
+						destRect.h += (mainCamera->size.height + 1);
 
-					if (destRect.x < 0)
-						destRect.x += (mainCamera.size.width - destRect.w + 1);
-					if (destRect.y < 0)
-						destRect.y += (mainCamera.size.height - destRect.h + 1);
+					// TODO: Replace by margin system
+					/*
+					 if (destRect.x < 0)
+					 destRect.x += (mainCamera->size.width - destRect.w + 1);
+					 if (destRect.y < 0)
+					 destRect.y += (mainCamera->size.height - destRect.h + 1); */
 
 					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
-						SDL_RenderCopy(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect);
+					{
+						SDL_RenderCopyEx(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect,
+						        currentObject->rotation, NULL, SDL_FLIP_NONE);
+					}
 				}
 
 				currentObjectNode = currentObjectNode->nextNode;

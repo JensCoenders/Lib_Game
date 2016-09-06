@@ -39,6 +39,12 @@ struct LinkedListNode
 
 /* Events */
 // TODO: Create structure for keyboard event
+typedef enum Game_ObjectEventType
+{
+	EVENT_TYPE_TYPED,
+	EVENT_TYPE_CLICKED
+
+} Game_ObjectEventType;
 
 typedef struct Game_ObjectEvent
 {
@@ -75,22 +81,22 @@ typedef struct Game_RenderEquipment
 
 /* Misc */
 
+typedef struct Game_MovementPars
+{
+	public:
+		unsigned char direction;
+		int speed;
+
+} Game_MovementPars;
+
 typedef struct Game_Camera
 {
 	public:
 		Game_Point position;
 		Game_Rect size;
-		unsigned char movementDirection;
-		int movementSpeed;
+		Game_MovementPars movementPars;
 
 } Game_Camera;
-
-typedef enum Game_ObjectEventType
-{
-	EVENT_TYPE_TYPED,
-	EVENT_TYPE_CLICKED
-
-} Game_ObjectEventType;
 
 typedef struct Game_ObjectProperty
 {

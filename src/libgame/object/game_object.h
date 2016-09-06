@@ -69,8 +69,18 @@ typedef struct Game_ModuleImageBackground : public Game_Module
 typedef struct Game_ModuleProperty : public Game_Module
 {
 	public:
-		// TODO: Create Game_ModuleProperty
+		LinkedListNode<Game_ObjectProperty>* propertyList;
+
+		int getIntProperty(std::string name, int defaultValue);
+		bool getBoolProperty(std::string name, bool defaultValue);
+		std::string getStringProperty(std::string name, std::string defaultValue);
+
+		template<typename T>
+		void setProperty(std::string name, T value);
+
 		Game_ModuleProperty(Game_Object* parent);
+	private:
+		LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
 
 } Game_ModuleProperty;
 
@@ -126,6 +136,7 @@ class Game_Object
 		// World vars
 		Game_Point coords;
 		Game_Rect size;
+		double rotation;
 
 		// Misc
 		bool isStatic;
@@ -143,9 +154,6 @@ class Game_Object
 
 		// Modules
 		int m_enabledModules;
-
-		// Property
-		// LinkedListNode<Game_ObjectProperty>* m_properties;
 
 		// Update
 		Game_ObjectFUFunc m_frameUpdateFunc;
@@ -169,53 +177,22 @@ typedef struct Game_RenderLayer
 
 } Game_RenderLayer;
 
-/*
- class Game_AdvancedObject;
- typedef void (*Game_ObjectEventFunc)(Game_AdvancedObject& object, Game_ObjectEvent& eventData);
+template<typename T>
+void Game_ModuleProperty::setProperty(std::string name, T value)
+{
+	for (unsigned int i = 0; i < name.length(); i++)
+		name[i] = tolower(name.at(i));
 
- class Game_AdvancedObject : public Game_TextObject
- {
- public:
- // Event vars
- Game_ObjectEventFunc keyTypedFunc;
- Game_ObjectEventFunc mouseClickedFunc;
+	LinkedListNode < Game_ObjectProperty > *propertyNode = findPropertyByName(name);
+	if (!propertyNode)
+	{
+		propertyNode = new LinkedListNode<Game_ObjectProperty>();
+		propertyNode->value->name = name;
+		propertyNode->nextNode = propertyList;
+		propertyList = propertyNode;
+	}
 
- // Event funcs
- bool callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event);
-
- // Property funcs
- int getIntProperty(std::string name, int defaultValue);
- bool getBoolProperty(std::string name, bool defaultValue);
- std::string getStringProperty(std::string name, std::string defaultValue);
-
- template<typename T>
- void setProperty(std::string name, T value);
-
- Game_AdvancedObject(int x, int y, int w, int h, bool isStatic = false);
- ~Game_AdvancedObject();
- protected:
- // Misc funcs
- LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
-
- };
-
- template<typename T>
- void Game_AdvancedObject::setProperty(std::string name, T value)
- {
- for (unsigned int i = 0; i < name.length(); i++)
- name[i] = tolower(name.at(i));
-
- LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
- if (!propertyNode)
- {
- propertyNode = new LinkedListNode<Game_ObjectProperty>();
- propertyNode->value->name = name;
- propertyNode->nextNode = m_properties;
- m_properties = propertyNode;
- }
-
- propertyNode->value->setValue(value);
- }
- */
+	propertyNode->value->setValue(value);
+}
 
 #endif
