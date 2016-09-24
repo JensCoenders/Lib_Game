@@ -151,7 +151,7 @@ Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 
 Game_ModuleProperty::~Game_ModuleProperty()
 {
-	// TODO: Free memory allocated to object properties
+
 }
 
 string Game_ModuleText::getText()

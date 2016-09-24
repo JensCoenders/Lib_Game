@@ -70,10 +70,6 @@ bool processArguments(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	// TODO: Fix position glitch when window resizes
-	// TODO: Fix random window crash when window resizes
-	// TODO: Create parent-child system
-
 	// Process arguments
 	if (!processArguments(argc, argv))
 		return -1;

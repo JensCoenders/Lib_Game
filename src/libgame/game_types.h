@@ -38,7 +38,7 @@ struct LinkedListNode
 };
 
 /* Events */
-// TODO: Create structure for keyboard event
+
 typedef enum Game_ObjectEventType
 {
 	EVENT_TYPE_TYPED,

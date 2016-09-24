@@ -153,7 +153,6 @@ Game_Rect game_getObjectRenderSize(Game_Object& object)
 	int width = object.size.width;
 	int height = object.size.height;
 
-	// TODO: Replace by margin system
 	if (width < 0)
 		width += (mainCamera.size.width + 1);
 	if (height < 0)
@@ -257,7 +256,6 @@ SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* 
 		return NULL;
 	else if (object.textModule->autoSize)
 	{
-		// TODO: Fix ugly text font due to scaling
 		object.size.width = textSurface->w * object.textModule->textScaling;
 		object.size.height = textSurface->h * object.textModule->textScaling;
 	}

@@ -95,7 +95,7 @@ typedef struct Game_ModuleText : public Game_Module
 
 		std::string getText();
 		void setText(std::string text);
-		void setTextSize(int size);		// TODO: Implement function
+		void setTextSize(int size);
 		SDL_Surface* renderText();
 
 		SDL_Color getTextColor();
