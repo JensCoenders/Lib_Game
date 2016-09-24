@@ -1,38 +1,31 @@
 #include <iostream>
 #include <windows.h>
-
 #include "game_thread.h"
 
 using namespace std;
 
-typedef struct game_threadpars
+HANDLE g_threads[GAME_MAX_THREADS];
+
+void threadHandler(void* pars)
 {
-	public:
-		int threadID;
-		GAME_THREAD threadFunction;
+	// Execute game thread function
+	Game_ThreadPars* threadPars = (Game_ThreadPars*) pars;
+	threadPars->threadFunction();
 
-} Game_ThreadPars;
+	// Reset thread ID
+	g_threads[threadPars->threadID] = NULL;
+	delete threadPars;
+}
 
-/* Thread variables */
-
-// IDs
-bool threadAvailableList[GAME_MAX_THREADS];
-HANDLE threadList[GAME_MAX_THREADS];
-
-/* Thread functions */
-
-void threadFunction(void* params);
-
-int game_startThread(GAME_THREAD function)
+int game_startThread(GAME_THREAD_FUNC function)
 {
 	// Initialize list if not initialized
 	static bool initialized = false;
 	if (!initialized)
 	{
 		for (int i = 0; i < GAME_MAX_THREADS; i++)
-		{
-			threadAvailableList[i] = true;
-		}
+			g_threads[i] = NULL;
+
 		initialized = true;
 	}
 
@@ -40,19 +33,17 @@ int game_startThread(GAME_THREAD function)
 	int newThreadID = -1;
 	for (int i = 0; i < GAME_MAX_THREADS; i++)
 	{
-		if (threadAvailableList[i])
+		if (!g_threads[i])
 		{
-			threadAvailableList[i] = false;
 			newThreadID = i;
+			g_threads[i] = NULL;
 			break;
 		}
 	}
 
 	// Make sure thread limit isn't reached
-	if (newThreadID == -1)
-	{
+	if (newThreadID < 0)
 		return -1;
-	}
 
 	// Create parameters
 	Game_ThreadPars* pars = new Game_ThreadPars();
@@ -60,13 +51,11 @@ int game_startThread(GAME_THREAD function)
 	pars->threadFunction = function;
 
 	// Start thread
-	threadList[newThreadID] = (HANDLE)_beginthread(threadFunction, 0, pars);
+	g_threads[newThreadID] = (HANDLE)_beginthread(threadHandler, 0, pars);
 
 	// Check if thread creation succeeded
-	if (threadList[newThreadID] == NULL)
-	{
+	if (g_threads[newThreadID] == NULL)
 		return -2;
-	}
 
 	return newThreadID;
 }
@@ -74,25 +63,12 @@ int game_startThread(GAME_THREAD function)
 void game_joinThread(int threadID)
 {
 	// Check if ID provides a valid thread
-	if (threadID < 0 || threadID >= GAME_MAX_THREADS || threadAvailableList[threadID])
-	{
+	if (threadID < 0 || threadID >= GAME_MAX_THREADS || !g_threads[threadID])
 		return;
-	}
 
 	// Wait for thread to finish
-	WaitForSingleObject(threadList[threadID], INFINITE);
-	CloseHandle(threadList[threadID]);
-}
-
-void threadFunction(void* pars)
-{
-	// Execute game thread function
-	Game_ThreadPars* threadPars = (Game_ThreadPars*) pars;
-	threadPars->threadFunction();
-
-	// Reset thread ID
-	threadAvailableList[threadPars->threadID] = true;
-	delete threadPars;
+	WaitForSingleObject(g_threads[threadID], INFINITE);
+	CloseHandle(g_threads[threadID]);
 }
 
 void game_sleep(int milliseconds)

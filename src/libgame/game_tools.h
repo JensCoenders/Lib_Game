@@ -6,27 +6,41 @@
 
 #include "game_object.h"
 #include "game_shm.h"
-#include "game_types.h"
 
-/* Render functions */
+/* General */
+bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childPos, Game_Rect childSize, bool forcedInside);
+bool game_isRenderPosInside(Game_Object& parent, Game_Object& child, bool forceFullyInside);
 
-// Objects
+/* Assets */
+bool game_loadAsset(std::string assetPath);
+SDL_Surface* game_getAsset(std::string assetName);
+void game_freeAssets();
+
+/* Object */
 bool game_addGameObject(Game_Object* object, int layerID);
 bool game_removeGameObject(Game_Object* object);
 
-// Misc
-Game_Rect game_getTextSize(std::string text, TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT));
-Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight);
+Game_Point game_getObjectRenderPos(Game_Object& object);
+Game_Rect game_getObjectRenderSize(Game_Object& object);
 
-/* Misc functions */
 Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer = NULL, LinkedListNode<
         Game_Object>** outputNode = NULL);
+
+/* Rendering */
+Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight);
+
+/* Misc */
+Game_Rect game_getTextSize(std::string text, TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT));
 
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment);
 SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment);
 
 /* Template combine functions */
-std::string combineStringPath(std::string firstString = "");
+template<typename First>
+std::string combineStringPath(First& firstString = "")
+{
+	return firstString;
+}
 
 template<typename First, typename ... Rest>
 std::string combineStringPath(First firstString, Rest&... rest)
@@ -37,7 +51,25 @@ std::string combineStringPath(First firstString, Rest&... rest)
 template<typename First, typename ... Rest>
 std::string game_getAssetPath(First name, Rest&... subDirs)
 {
-	return game_shmGet(SHM_MISC_ASSETS_DIR) + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
+	return game_shmGet(SHM_ASSETS_DIR) + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
+}
+
+template<typename First>
+int combineModuleTypes(First firstModule = 0)
+{
+	return firstModule;
+}
+
+template<typename First, typename ... Rest>
+int combineModuleTypes(First firstModule, Rest... restModules)
+{
+	return (int)firstModule | combineModuleTypes(restModules...);
+}
+
+template<typename First, typename ... Rest>
+Game_ModuleType game_combineModules(First firstModule, Rest... restModules)
+{
+	return (Game_ModuleType) ((int)firstModule | combineModuleTypes(restModules...));
 }
 
 #endif

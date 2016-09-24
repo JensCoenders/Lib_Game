@@ -48,6 +48,18 @@ Game_RenderEquipment::~Game_RenderEquipment()
 		SDL_DestroyRenderer(softwareRenderer);
 }
 
+Game_Asset::Game_Asset(std::string assetPath, SDL_Surface* loadedSurface)
+{
+	this->assetPath = assetPath;
+	this->loadedSurface = loadedSurface;
+}
+
+Game_Asset::~Game_Asset()
+{
+	if (loadedSurface)
+		SDL_FreeSurface(loadedSurface);
+}
+
 int Game_ObjectProperty::getIntValue()
 {
 	return m_intValue;
@@ -61,6 +73,24 @@ bool Game_ObjectProperty::getBoolValue()
 string Game_ObjectProperty::getStringValue()
 {
 	return *m_stringValue;
+}
+
+void Game_ObjectProperty::setValue(int value)
+{
+	m_intValue = value;
+}
+
+void Game_ObjectProperty::setValue(bool value)
+{
+	m_boolValue = value;
+}
+
+void Game_ObjectProperty::setValue(string value)
+{
+	if (!m_stringValue)
+		m_stringValue = new string(value);
+	else
+		*m_stringValue = value;
 }
 
 Game_ObjectProperty::Game_ObjectProperty()

@@ -9,24 +9,18 @@ int initialize()
 	string windowTitle = "Jens Game ";
 	windowTitle += GAME_VERSION;
 
-	cout << "[INFO] Initializing SDL... ";
 	int returnCode = game_initialize(windowTitle, {1024, 576}, {SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED});
-	if (!returnCode)
-		cout << "[OK]" << endl;
-	else
+	if (returnCode)
 	{
 		switch (returnCode)
 		{
 			case -2:
-				cout << "[CRIT]" << endl;
 				cout << "[CRIT] Failed to initialize SDL! Error: " << SDL_GetError() << endl;
 				break;
 			case -3:
-				cout << "[CRIT]" << endl;
 				cout << "[CRIT] Failed to initialize SDL_image! Error: " << IMG_GetError() << endl;
 				break;
 			case -4:
-				cout << "[CRIT]" << endl;
 				cout << "[CRIT] Failed to initialize SDL_ttf! Error: " << TTF_GetError() << endl;
 				break;
 		}
@@ -55,8 +49,8 @@ bool processArguments(int argc, char** argv)
 
 		if (argument == "--assets" && (i + 1) < argc)
 		{
-			game_shmPut(SHM_MISC_ASSETS_DIR, argv[++i]);
-			cout << "[INFO] Setting assets folder to '" << game_shmGet(SHM_MISC_ASSETS_DIR) << "'" << endl;
+			game_shmPut(SHM_ASSETS_DIR, argv[++i]);
+			cout << "[INFO] Setting assets folder to '" << game_shmGet(SHM_ASSETS_DIR) << "'" << endl;
 		}
 		else if (argument == "--help")
 		{
@@ -96,6 +90,6 @@ int main(int argc, char** argv)
 	// Cleanup
 	game_cleanup();
 
-	cout << "[INFO] Cleanup complete";
+	cout << "[INFO] Cleanup complete" << endl;
 	return 0;
 }

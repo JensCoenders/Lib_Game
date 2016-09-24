@@ -21,6 +21,7 @@ void game_runMainLoop()
 	// Start render thread
 	game_startRenderThread();
 
+	cout << "[INFO] Started main thread" << endl;
 	while (game_shmGet(SHM_GAME_IS_RUNNING))
 	{
 		// Wait and poll events
@@ -50,6 +51,8 @@ void game_runMainLoop()
 
 void game_renderThread()
 {
+	cout << "[INFO] Started render thread" << endl;
+
 	// Setup renderer
 	SDL_Renderer* mainRenderer = game_shmGet(SHM_SDL_MAIN_RENDERER);
 	SDL_SetRenderDrawColor(mainRenderer, 255, 255, 255, 0);
@@ -57,60 +60,42 @@ void game_renderThread()
 	// Setup FPS object
 	if (!game_shmGet(SHM_MISC_FPS_OBJECT))
 	{
-		Game_Object fpsObject(-1, 0, 100, 50, true, MODULE_TEXT);
-		fpsObject.setTextureUpdate(textObjectTextureUpdate);
-		fpsObject.textModule->setText("FPS: 0");
+		GAME_DEBUG_CHECK
+			cout << "[DEBUG] Setting up FPS object... ";
 
-		game_shmPut(SHM_MISC_FPS_OBJECT, &fpsObject);
-		game_addGameObject(&fpsObject, GAME_LAYER_GUI_FOREGROUND);
+		Game_Object* fpsObject = new Game_Object(5, 0, 0, 0, true, game_combineModules(MODULE_TEXT, MODULE_PROPERTY));
+		fpsObject->setTextureUpdate(textObjectTextureUpdate);
+		fpsObject->textModule->setText("FPS: 0");
+		fpsObject->textModule->setTextColor({255, 255, 0, 255});
+		fpsObject->propertyModule->setProperty("LIBGAME_CREATED", true);
+
+		game_shmPut(SHM_MISC_FPS_OBJECT, fpsObject);
+		game_addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
+
+		GAME_DEBUG_CHECK
+			cout << "[OK]" << endl;
 	}
 
-	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
-	Game_Object* centeredObject = game_shmGet(SHM_WORLD_CENTERED_OBJECT);
-	Game_MovementPars* targetMovement = &mainCamera->movementPars;
-	Game_Point* targetPos = &mainCamera->position;
-
 	// Rendering loop
+	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	int startTime = clock(), sleepTime = 16, frameCount = 0;
+
 	while (game_shmGet(SHM_GAME_IS_RUNNING))
 	{
 		SDL_RenderClear(mainRenderer);
 
-		// Update moving object
-		if (targetMovement->direction & 0x1)
-			targetPos->y -= targetMovement->speed;
-		else if (targetMovement->direction & 0x2)
-			targetPos->y += targetMovement->speed;
-
-		if (targetMovement->direction & 0x4)
-			targetPos->x -= targetMovement->speed;
-		else if (targetMovement->direction & 0x8)
-			targetPos->x += targetMovement->speed;
-
-		// Update camera position
-		if (centeredObject && !game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
+		// Update all objects
+		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
-			targetMovement = &game_shmGet(SHM_WORLD_CENTERED_OBJECT_MOVEMENT);
-			targetPos = &game_shmGet(SHM_WORLD_CENTERED_OBJECT)->coords;
-
-			mainCamera->position.x = (mainCamera->position.x - centeredObject->size.width) / 2
-			        + centeredObject->coords.x;
-			mainCamera->position.y = (mainCamera->position.y - centeredObject->size.height) / 2
-			        + centeredObject->coords.y;
-		}
-
-		// Draw all objects
-		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
-		{
-			LinkedListNode<Game_Object>* currentObjectNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
-			while (currentObjectNode)
+			LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
+			while (currentNode)
 			{
-				Game_Object* currentObject = currentObjectNode->value;
+				Game_Object* currentObject = currentNode->value;
 
 				// Frame-update object
 				currentObject->runFrameUpdate();
 
-				// Update texture
+				// Texture-update object
 				if (currentObject->needsTextureUpdate())
 				{
 					// Destroy last rendered texture
@@ -149,61 +134,67 @@ void game_renderThread()
 						delete equipment;
 				}
 
-				// Draw object
+				currentNode = currentNode->nextNode;
+			}
+		}
+
+		// Update camera position
+		if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera->centeredObject)
+		{
+			mainCamera->centeredObject->runFrameUpdate();
+
+			mainCamera->position.x = mainCamera->centeredObject->position.x -
+					(mainCamera->size.width - mainCamera->centeredObject->size.width) / 2;
+			mainCamera->position.y = mainCamera->centeredObject->position.y -
+					(mainCamera->size.height - mainCamera->centeredObject->size.height) / 2;
+		}
+
+		// Draw all objects
+		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
+		{
+			LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
+			while (currentNode)
+			{
+				Game_Object* currentObject = currentNode->value;
 				if (currentObject->isVisible && currentObject->lastRenderedTexture)
 				{
-					SDL_Rect destRect;
-					if (currentObject->isStatic)
-					{
-						destRect.x = currentObject->coords.x;
-						destRect.y = currentObject->coords.y;
-					}
-					else if (currentObject == game_shmGet(SHM_WORLD_CENTERED_OBJECT))
-					{
-						destRect.x = (mainCamera->size.width - currentObject->size.width) / 2;
-						destRect.y = (mainCamera->size.height - currentObject->size.height) / 2;
-					}
-					else
-					{
-						destRect.x = currentObject->coords.x - mainCamera->position.x;
-						destRect.y = currentObject->coords.y - mainCamera->position.y;
-					}
+					// Get render position and size
+					Game_Point renderPos = game_getObjectRenderPos(*currentObject);
+					Game_Rect renderSize = game_getObjectRenderSize(*currentObject);
 
-					if (currentObject->isStatic)
-					{
-						destRect.w = currentObject->size.width;
-						destRect.h = currentObject->size.height;
-					}
-					else
-					{
-						// TODO: Fix zooming system
-						/* destRect.x *= Game_SharedMemory::w_zoomScale;
-						 destRect.y *= Game_SharedMemory::w_zoomScale; */
-						destRect.w = currentObject->size.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-						destRect.h = currentObject->size.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-					}
+					SDL_Rect renderRect;
+					renderRect.x = renderPos.x;
+					renderRect.y = renderPos.y;
+					renderRect.w = renderSize.width;
+					renderRect.h = renderSize.height;
 
-					if (destRect.w < 0)
-						destRect.w += (mainCamera->size.width + 1);
-					if (destRect.h < 0)
-						destRect.h += (mainCamera->size.height + 1);
-
-					// TODO: Replace by margin system
-					/*
-					 if (destRect.x < 0)
-					 destRect.x += (mainCamera->size.width - destRect.w + 1);
-					 if (destRect.y < 0)
-					 destRect.y += (mainCamera->size.height - destRect.h + 1); */
-
-					if ((destRect.x + destRect.w) > 0 && (destRect.y + destRect.h) > 0)
+					if (currentObject->isStatic || game_isInside(mainCamera->position, mainCamera->size, renderPos, renderSize, false))
 					{
-						SDL_RenderCopyEx(mainRenderer, currentObject->lastRenderedTexture, NULL, &destRect,
-						        currentObject->rotation, NULL, SDL_FLIP_NONE);
+						SDL_RenderCopyEx(mainRenderer, currentObject->lastRenderedTexture, NULL, &renderRect,
+								currentObject->rotation, NULL, SDL_FLIP_NONE);
+
+						currentObject->isOutsideCameraBounds = false;
 					}
+					else if (!currentObject->isOutsideCameraBounds)
+						currentObject->isOutsideCameraBounds = true;
 				}
 
-				currentObjectNode = currentObjectNode->nextNode;
+				currentNode = currentNode->nextNode;
 			}
+		}
+
+		// Draw the camera
+		GAME_DEBUG_CHECK
+		{
+			SDL_Rect cameraBounds;
+			cameraBounds.x = mainCamera->position.x;
+			cameraBounds.y = mainCamera->position.y;
+			cameraBounds.w = mainCamera->size.width;
+			cameraBounds.h = mainCamera->size.height;
+
+			SDL_SetRenderDrawColor(mainRenderer, 255, 0, 0, 0);
+			SDL_RenderDrawRect(mainRenderer, &cameraBounds);
+			SDL_SetRenderDrawColor(mainRenderer, 255, 255, 255, 0);
 		}
 
 		SDL_RenderPresent(mainRenderer);
@@ -217,7 +208,7 @@ void game_renderThread()
 			float framesPerSecond = clocksPerFrame * CLOCKS_PER_SEC;
 
 			// Display FPS if necessary
-			if (game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_TEXT) && game_shmGet(SHM_GAME_USE_FPS_COUNTER))
+			if (game_shmGet(SHM_GAME_USE_FPS_COUNTER) && game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_TEXT))
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << framesPerSecond;
@@ -239,17 +230,39 @@ void game_renderThread()
 		game_sleep(sleepTime);
 	}
 
-	cout << "[INFO] Stopped render thread" << endl;
+	if (game_shmGet(SHM_MISC_FPS_OBJECT) && game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_PROPERTY))
+	{
+		if (game_shmGet(SHM_MISC_FPS_OBJECT)->propertyModule->getBoolProperty("LIBGAME_CREATED", false))
+		{
+			delete game_shmGet(SHM_MISC_FPS_OBJECT);
+
+			GAME_DEBUG_CHECK
+				cout << "[DEBUG] Deleted self-constructed FPS object" << endl;
+		}
+	}
+
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Stopped render thread (thread with ID " << g_renderThreadID << ')' << endl;
+	else
+		cout << "[INFO] Stopped render thread" << endl;
 }
 
-void game_startRenderThread()
+bool game_startRenderThread()
 {
 	game_shmPut(SHM_GAME_IS_RUNNING, true);
 
 	if ((g_renderThreadID = game_startThread(game_renderThread)))
+	{
 		cout << "[ERR] Couldn't start render thread! Error code: " << g_renderThreadID << endl;
+		return false;
+	}
 	else
-		cout << "[INFO] Started render thread with ID " << g_renderThreadID << endl;
+	{
+		GAME_DEBUG_CHECK
+			cout << "[DEBUG] Started render thread with ID " << g_renderThreadID << endl;
+	}
+
+	return true;
 }
 
 void game_stopRenderThread(bool join)
@@ -257,13 +270,25 @@ void game_stopRenderThread(bool join)
 	game_shmPut(SHM_GAME_IS_RUNNING, false);
 
 	if (join)
+	{
+		GAME_DEBUG_CHECK
+			cout << "[DEBUG] Joining render thread..." << endl;
+
 		game_joinThread(g_renderThreadID);
+	}
 }
 
 int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowStartPos)
 {
 	if (game_shmGet(SHM_SDL_INITIALIZED))
 		return -1;
+
+#ifdef GAME_DEBUG
+	game_shmPut(SHM_GAME_DEBUG_MODE, true);
+#endif
+
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Initializing SDL... ";
 
 	// Initialize SDL
 	int flags = SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER;
@@ -293,16 +318,32 @@ int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowS
 	if (!newFont)
 		return -4;
 
-	game_shmGet(SHM_WORLD_MAIN_CAMERA).size = windowSize;
+	// Set SHM variables
+	game_shmPut(SHM_SDL_INITIALIZED, true);
 	game_shmPut(SHM_SDL_WINDOW, window);
 	game_shmPut(SHM_SDL_MAIN_RENDERER, mainRenderer);
+	game_shmGet(SHM_WORLD_MAIN_CAMERA).size = windowSize;
 	game_shmPut(SHM_MISC_GUI_FONT, newFont);
-	game_shmPut(SHM_SDL_INITIALIZED, true);
+
+	GAME_DEBUG_CHECK
+		cout << "[OK]" << endl;
 	return 0;
 }
 
 void game_cleanup()
 {
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Cleaning up..." << endl;
+
+	// Free assets
+	game_freeAssets();
+
+	// Free object rendering list
+	delete[] game_shmGet(SHM_RENDER_LAYERS);
+
+	// Destroy GUI font
+	TTF_CloseFont(game_shmGet(SHM_MISC_GUI_FONT));
+
 	// Destroy renderer and window
 	SDL_DestroyRenderer(game_shmGet(SHM_SDL_MAIN_RENDERER));
 	SDL_DestroyWindow(game_shmGet(SHM_SDL_WINDOW));
@@ -310,11 +351,6 @@ void game_cleanup()
 	game_shmPut(SHM_SDL_WINDOW, NULL);
 	game_shmPut(SHM_SDL_MAIN_RENDERER, NULL);
 	game_shmPut(SHM_SDL_INITIALIZED, false);
-
-	delete[] game_shmGet(SHM_RENDER_LAYERS);
-
-	// Destroy GUI font
-	TTF_CloseFont(game_shmGet(SHM_MISC_GUI_FONT));
 
 	// Quit SDL
 	SDL_Quit();

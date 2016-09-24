@@ -3,9 +3,17 @@
 
 #define GAME_MAX_THREADS 8
 
-typedef void (*GAME_THREAD) ();
+typedef void (*GAME_THREAD_FUNC) ();
 
-int game_startThread(GAME_THREAD function);
+typedef struct Game_ThreadPars
+{
+	public:
+		int threadID;
+		GAME_THREAD_FUNC threadFunction;
+
+} Game_ThreadPars;
+
+int game_startThread(GAME_THREAD_FUNC function);
 void game_joinThread(int threadID);
 void game_sleep(int milliseconds);
 

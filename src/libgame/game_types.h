@@ -81,22 +81,16 @@ typedef struct Game_RenderEquipment
 
 /* Misc */
 
-typedef struct Game_MovementPars
+typedef struct Game_Asset
 {
 	public:
-		unsigned char direction;
-		int speed;
+		std::string assetPath;
+		SDL_Surface* loadedSurface;
 
-} Game_MovementPars;
+		Game_Asset(std::string assetPath, SDL_Surface* loadedSurface);
+		~Game_Asset();
 
-typedef struct Game_Camera
-{
-	public:
-		Game_Point position;
-		Game_Rect size;
-		Game_MovementPars movementPars;
-
-} Game_Camera;
+} Game_Asset;
 
 typedef struct Game_ObjectProperty
 {
@@ -107,8 +101,9 @@ typedef struct Game_ObjectProperty
 		bool getBoolValue();
 		std::string getStringValue();
 
-		template<typename T>
-		void setValue(T value);
+		void setValue(int value);
+		void setValue(bool value);
+		void setValue(std::string value);
 
 		Game_ObjectProperty();
 		~Game_ObjectProperty();
@@ -137,20 +132,6 @@ LinkedListNode<T>::~LinkedListNode()
 
 	if (nextNode)
 		delete nextNode;
-
-}
-
-template<typename T>
-void Game_ObjectProperty::setValue(T value)
-{
-	if (typeid(T) == typeid(int))
-		m_intValue = (int) value;
-	else if (typeid(T) == typeid(bool))
-		m_boolValue = (bool) value;
-	else if (typeid(T) == typeid(std::string))
-		m_stringValue = new std::string(value);
-	else
-		std::cout << "[WARN] Data type other than int, bool or string not allowed for object property!" << std::endl;
 }
 
 #endif

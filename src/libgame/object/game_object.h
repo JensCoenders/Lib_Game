@@ -60,6 +60,7 @@ typedef struct Game_ModuleImageBackground : public Game_Module
 	public:
 		std::string getTexturePath();
 		void setTexturePath(std::string texturePath);
+
 		Game_ModuleImageBackground(Game_Object* parent);
 	private:
 		std::string m_texturePath;
@@ -79,6 +80,7 @@ typedef struct Game_ModuleProperty : public Game_Module
 		void setProperty(std::string name, T value);
 
 		Game_ModuleProperty(Game_Object* parent);
+		~Game_ModuleProperty();
 	private:
 		LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
 
@@ -123,6 +125,7 @@ class Game_Object
 
 		// Update
 		SDL_Texture* lastRenderedTexture;
+		bool isOutsideCameraBounds;
 
 		void runFrameUpdate();
 		void setFrameUpdate(Game_ObjectFUFunc function);
@@ -134,7 +137,7 @@ class Game_Object
 		void satisfyTextureUpdate();
 
 		// World vars
-		Game_Point coords;
+		Game_Point position;
 		Game_Rect size;
 		double rotation;
 
@@ -166,6 +169,18 @@ class Game_Object
 
 /* Misc */
 
+typedef struct Game_Camera
+{
+	public:
+		Game_Point position;
+		Game_Rect size;
+		Game_Object* centeredObject;
+
+		unsigned char movementDirection;
+		int movementSpeed;
+
+} Game_Camera;
+
 typedef struct Game_RenderLayer
 {
 	public:
@@ -177,18 +192,20 @@ typedef struct Game_RenderLayer
 
 } Game_RenderLayer;
 
-template<typename T>
+template <typename T>
 void Game_ModuleProperty::setProperty(std::string name, T value)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));
 
-	LinkedListNode < Game_ObjectProperty > *propertyNode = findPropertyByName(name);
+	LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
 	if (!propertyNode)
 	{
 		propertyNode = new LinkedListNode<Game_ObjectProperty>();
+		propertyNode->value = new Game_ObjectProperty();
 		propertyNode->value->name = name;
 		propertyNode->nextNode = propertyList;
+
 		propertyList = propertyNode;
 	}
 

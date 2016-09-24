@@ -107,9 +107,10 @@ Game_Object::Game_Object(int x, int y, int w, int h)
 	textModule = NULL;
 
 	lastRenderedTexture = NULL;
+	isOutsideCameraBounds = false;
 
-	coords.x = x;
-	coords.y = y;
+	position.x = x;
+	position.y = y;
 	size.width = w;
 	size.height = h;
 	rotation = 0.0;

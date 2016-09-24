@@ -9,7 +9,7 @@ int game_initialize(std::string windowTitle, Game_Rect windowSize, Game_Point wi
 void game_cleanup();
 
 // Rendering
-void game_startRenderThread();
+bool game_startRenderThread();
 void game_stopRenderThread(bool join);
 
 // Misc

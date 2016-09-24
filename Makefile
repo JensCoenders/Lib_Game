@@ -30,7 +30,7 @@ DEFAULT_LIB_DIRS := $(LIBDIR) $(CONF_LIBDIR)
 
 # Compiler flags based on configuration
 ifeq ($(CONFIG),debug)
-	DEFAULT_CPP_FLAGS += -g3 -O0
+	DEFAULT_CPP_FLAGS += -g3 -O0 -DGAME_DEBUG
 else
 	DEFAULT_CPP_FLAGS += -O3 -Wall -Wextra
 endif

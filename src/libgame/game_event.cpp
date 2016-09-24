@@ -1,58 +1,54 @@
 #include <iostream>
-
 #include "game_defs.h"
 #include "game_event.h"
+#include "game_tools.h"
 #include "game_shm.h"
 
 using namespace std;
 
 bool processMovement(SDL_KeyboardEvent& event)
 {
-	Game_Object* centeredObject = game_shmGet(SHM_WORLD_CENTERED_OBJECT);
-	Game_MovementPars* targetPars = &game_shmGet(SHM_WORLD_MAIN_CAMERA).movementPars;
-	if (centeredObject && !game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
-		targetPars = &game_shmGet(SHM_WORLD_CENTERED_OBJECT_MOVEMENT);
-
+	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	switch (event.keysym.scancode)
 	{
 		case SDL_SCANCODE_W:
 			if (event.state == SDL_PRESSED)
 			{
-				targetPars->direction &= 0xD;   // Remove 'backward' movement
-				targetPars->direction |= 0x1;   // Add 'forward' movement
+				mainCamera->movementDirection &= 0xD;   // Remove 'backward' movement
+				mainCamera->movementDirection |= 0x1;   // Add 'forward' movement
 			}
 			else
-				targetPars->direction &= 0xE;   // Remove 'forward' movement
+				mainCamera->movementDirection &= 0xE;   // Remove 'forward' movement
 
 			break;
 		case SDL_SCANCODE_A:
 			if (event.state == SDL_PRESSED)
 			{
-				targetPars->direction &= 0x7;   // Remove 'right' movement
-				targetPars->direction |= 0x4;   // Add 'left' movement
+				mainCamera->movementDirection &= 0x7;   // Remove 'right' movement
+				mainCamera->movementDirection |= 0x4;   // Add 'left' movement
 			}
 			else
-				targetPars->direction &= 0xB;   // Remove 'left' movement
+				mainCamera->movementDirection &= 0xB;   // Remove 'left' movement
 
 			break;
 		case SDL_SCANCODE_S:
 			if (event.state == SDL_PRESSED)
 			{
-				targetPars->direction &= 0xE;   // Remove 'forward' movement
-				targetPars->direction |= 0x2;   // Add 'backward' movement
+				mainCamera->movementDirection &= 0xE;   // Remove 'forward' movement
+				mainCamera->movementDirection |= 0x2;   // Add 'backward' movement
 			}
 			else
-				targetPars->direction &= 0xD;   // Remove 'backward' movement
+				mainCamera->movementDirection &= 0xD;   // Remove 'backward' movement
 
 			break;
 		case SDL_SCANCODE_D:
 			if (event.state == SDL_PRESSED)
 			{
-				targetPars->direction &= 0xB;   // Remove 'left' movement
-				targetPars->direction |= 0x8;   // Add 'right' movement
+				mainCamera->movementDirection &= 0xB;   // Remove 'left' movement
+				mainCamera->movementDirection |= 0x8;   // Add 'right' movement
 			}
 			else
-				targetPars->direction &= 0x7;   // Remove 'right' movement
+				mainCamera->movementDirection &= 0x7;   // Remove 'right' movement
 
 			break;
 		default:
@@ -79,17 +75,14 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 				break;
 			case SDL_SCANCODE_SPACE:
 			{
-				Game_MovementPars* targetPars = &game_shmGet(SHM_WORLD_MAIN_CAMERA).movementPars;
-				if (game_shmGet(SHM_WORLD_CENTERED_OBJECT) && !game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
-					targetPars = &game_shmGet(SHM_WORLD_CENTERED_OBJECT_MOVEMENT);
-
+				Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
 				if (event.keysym.mod & KMOD_LSHIFT)
 				{
-					if (targetPars->speed > 1)
-						targetPars->speed -= 1;
+					if (mainCamera->movementSpeed > 1)
+						mainCamera->movementSpeed -= 1;
 				}
 				else
-					targetPars->speed += 1;
+					mainCamera->movementSpeed += 1;
 
 				break;
 			}
@@ -130,11 +123,19 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 		switch (event.keysym.scancode)
 		{
 			case SDL_SCANCODE_R:
-				game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x = 0;
-				game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y = 0;
-				game_shmGet(SHM_WORLD_MAIN_CAMERA).movementPars.speed = 2;
-				game_shmGet(SHM_WORLD_ZOOM_SCALE) = 1;
+			{
+				Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
+				if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera->centeredObject)
+				{
+					mainCamera->centeredObject->position.x = 0;
+					mainCamera->centeredObject->position.y = 0;
+					mainCamera->centeredObject->rotation = 0;
+				}
+
+				mainCamera->movementSpeed = 2;
+				game_shmGet(SHM_WORLD_ZOOM_SCALE) = 1.0;
 				break;
+			}
 			case SDL_SCANCODE_F11:
 				if (event.type == SDL_KEYDOWN)
 				{
@@ -186,18 +187,14 @@ void game_processMouseEvent(SDL_Event& event)
 			Game_Object* object = currentNode->value;
 			if (object->isModuleEnabled(MODULE_EVENT))
 			{
-				int realX = object->coords.x - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x;
-				int realY = object->coords.y - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y;
-				int realWidth = object->size.width * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-				int realHeight = object->size.height * game_shmGet(SHM_WORLD_ZOOM_SCALE);
-
-				if ((clickedX >= realX) && (clickedX <= (realX + realWidth)) && (clickedY >= realY)
-				        && (clickedY <= realY + realHeight))
+				Game_Point renderPos = game_getObjectRenderPos(*object);
+				Game_Rect renderSize = game_getObjectRenderSize(*object);
+				if (game_isInside(renderPos, renderSize, {clickedX, clickedY}, {0, 0}, true))
 				{
 					// Create Game_MouseClickedEvent
 					Game_MouseClickedEvent mouseClickedEvent(&event);
-					mouseClickedEvent.relX = clickedX - realX;
-					mouseClickedEvent.relY = clickedY - realY;
+					mouseClickedEvent.relX = clickedX - renderPos.x;
+					mouseClickedEvent.relY = clickedY - renderPos.y;
 
 					object->eventModule->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
 					return;

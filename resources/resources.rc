@@ -1,5 +1,5 @@
 1 VERSIONINFO
-FILEVERSION		0,0,3,0
+FILEVERSION		0,0,4,0
 BEGIN
 	BLOCK "StringFileInfo"
 	BEGIN
@@ -7,7 +7,7 @@ BEGIN
 		BEGIN
 			VALUE "CompanyName", "Jensware"
 			VALUE "FileDescription", "Jens C++ Game"
-			VALUE "FileVersion", "0.3.0"
+			VALUE "FileVersion", "0.4.0"
 		END
 	END
 	

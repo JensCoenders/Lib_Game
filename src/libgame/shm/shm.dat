@@ -12,6 +12,7 @@
 #include <SDL2/SDL_ttf.h>
 #include "game_defs.h"
 #include "game_object.h"
+#include "game_types.h"
 
 // General variables
 #section GAME
@@ -19,13 +20,18 @@
 	int targetFps = 60;
 	int currentFps = 0;
 	bool useFpsCounter = true;
+	bool debugMode = false;
+#end
+
+// Asset variables
+#section ASSETS
+	std::string dir = "assets";
+	LinkedListNode<Game_Asset>* loadedAssets = NULL;
 #end
 
 // World variables
 #section WORLD
-	Game_Camera mainCamera = {{0, 0}, {0, 0}, {0, 2}};
-	Game_Object* centeredObject = NULL;
-	Game_MovementPars centeredObjectMovement = {0, 2};
+	Game_Camera mainCamera = {{0, 0}, {0, 0}, NULL, 0, 2};
 	bool keyboardMovesCamera = true;
 	float zoomScale = 1.0;
 #end
@@ -44,7 +50,6 @@
 
 // Miscellaneous
 #section MISC
-	std::string assetsDir = "assets";
 	TTF_Font* guiFont = NULL;
 	Game_Object* fpsObject = NULL;
 	Game_Object* keyboardInputObject = NULL;

@@ -88,6 +88,7 @@ void Game_ModuleImageBackground::setTexturePath(std::string texturePath)
 Game_ModuleImageBackground::Game_ModuleImageBackground(Game_Object* parent) :
 		Game_Module(parent)
 {
+	m_texturePath = "";
 }
 
 int Game_ModuleProperty::getIntProperty(string name, int defaultValue)
@@ -146,6 +147,11 @@ Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 		Game_Module(parent)
 {
 	propertyList = NULL;
+}
+
+Game_ModuleProperty::~Game_ModuleProperty()
+{
+	// TODO: Free memory allocated to object properties
 }
 
 string Game_ModuleText::getText()
