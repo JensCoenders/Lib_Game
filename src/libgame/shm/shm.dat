@@ -33,7 +33,7 @@
 #section WORLD
 	Game_Camera mainCamera = {{0, 0}, {0, 0}, NULL, 0, 2};
 	bool keyboardMovesCamera = true;
-	float zoomScale = 1.0;
+	double zoomScale = 1.0;
 #end
 
 // Rendering

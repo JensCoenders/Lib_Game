@@ -48,14 +48,31 @@ void playerPosLabFU(Game_Object& object)
 	if (!object.isModuleEnabled(MODULE_TEXT))
 		return;
 
-	static Game_Point lastObjectPos = {-1, -1};
-	Game_Point newObjectPos = game_shmGet(SHM_WORLD_MAIN_CAMERA).centeredObject->position;
-	if (lastObjectPos.x != newObjectPos.x || lastObjectPos.y != newObjectPos.y)
+	static Game_Point lastPlayerPos = {-1, -1};
+	Game_Point newPlayerPos = game_shmGet(SHM_WORLD_MAIN_CAMERA).centeredObject->position;
+	if (lastPlayerPos.x != newPlayerPos.x || lastPlayerPos.y != newPlayerPos.y)
 	{
-		lastObjectPos = newObjectPos;
+		lastPlayerPos = newPlayerPos;
 
 		ostringstream stream;
-		stream << "Player: " << newObjectPos.toString();
+		stream << "Player: " << newPlayerPos.toString();
+		object.textModule->setText(stream.str());
+	}
+}
+
+void cameraPosLabFU(Game_Object& object)
+{
+	if (!object.isModuleEnabled(MODULE_TEXT))
+		return;
+
+	static Game_Point lastCamPos = {-1, -1};
+	Game_Point newCamPos = game_shmGet(SHM_WORLD_MAIN_CAMERA).position;
+	if (lastCamPos.x != newCamPos.x || lastCamPos.y != newCamPos.y)
+	{
+		lastCamPos = newCamPos;
+
+		ostringstream stream;
+		stream << "Camera: " << newCamPos.toString();
 		object.textModule->setText(stream.str());
 	}
 }
@@ -63,7 +80,7 @@ void playerPosLabFU(Game_Object& object)
 void playerFU(Game_Object& object)
 {
 	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
-	if (!mainCamera->movementDirection)
+	if (!mainCamera->movementDirection || game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
 		return;
 
 	if (mainCamera->movementDirection & 0x1)
@@ -117,31 +134,36 @@ void runTestGame()
 	game_shmPut(SHM_GAME_USE_FPS_COUNTER, true);
 
 	// Debug objects
-	GAME_DEBUG_CHECK
-	{
-		SDL_Color debugColor = {255, 255, 0, 255};
+#ifdef GAME_DEBUG
+	SDL_Color debugColor = {255, 255, 0, 255};
 
-		Game_Object speedLab(5, 25, 0, 0, true, MODULE_TEXT);
-		speedLab.setFrameUpdate(speedLabFU);
-		speedLab.setTextureUpdate(textObjectTextureUpdate);
-		speedLab.textModule->setTextColor(debugColor);
+	Game_Object speedLab(5, 25, 0, 0, true, MODULE_TEXT);
+	speedLab.setFrameUpdate(speedLabFU);
+	speedLab.setTextureUpdate(textObjectTextureUpdate);
+	speedLab.textModule->setTextColor(debugColor);
 
-		Game_Object zoomScaleLab(5, 50, 0, 0, true, MODULE_TEXT);
-		zoomScaleLab.setFrameUpdate(zoomScaleLabFU);
-		zoomScaleLab.setTextureUpdate(textObjectTextureUpdate);
-		zoomScaleLab.textModule->setTextColor(debugColor);
+	Game_Object zoomScaleLab(5, 50, 0, 0, true, MODULE_TEXT);
+	zoomScaleLab.setFrameUpdate(zoomScaleLabFU);
+	zoomScaleLab.setTextureUpdate(textObjectTextureUpdate);
+	zoomScaleLab.textModule->setTextColor(debugColor);
 
-		Game_Object playerPosLab(5, 74, 0, 0, true, MODULE_TEXT);
-		playerPosLab.setFrameUpdate(playerPosLabFU);
-		playerPosLab.setTextureUpdate(textObjectTextureUpdate);
-		playerPosLab.textModule->setTextColor(debugColor);
+	Game_Object playerPosLab(5, 75, 0, 0, true, MODULE_TEXT);
+	playerPosLab.setFrameUpdate(playerPosLabFU);
+	playerPosLab.setTextureUpdate(textObjectTextureUpdate);
+	playerPosLab.textModule->setTextColor(debugColor);
 
-		game_addGameObject(&speedLab, GAME_LAYER_GUI_FOREGROUND);
-		game_addGameObject(&zoomScaleLab, GAME_LAYER_GUI_FOREGROUND);
-		game_addGameObject(&playerPosLab, GAME_LAYER_GUI_FOREGROUND);
+	Game_Object cameraPosLab(5, 100, 0, 0, true, MODULE_TEXT);
+	cameraPosLab.setFrameUpdate(cameraPosLabFU);
+	cameraPosLab.setTextureUpdate(textObjectTextureUpdate);
+	cameraPosLab.textModule->setTextColor(debugColor);
 
-		cout << "[DEBUG] Created debug objects" << endl;
-	}
+	game_addGameObject(&speedLab, GAME_LAYER_GUI_FOREGROUND);
+	game_addGameObject(&zoomScaleLab, GAME_LAYER_GUI_FOREGROUND);
+	game_addGameObject(&playerPosLab, GAME_LAYER_GUI_FOREGROUND);
+	game_addGameObject(&cameraPosLab, GAME_LAYER_GUI_FOREGROUND);
+
+	cout << "[DEBUG] Created debug objects" << endl;
+#endif
 
 	// Game objects
 	Game_Object background(0, 0, -1, -1, false, MODULE_IMAGE_BACKGROUND);

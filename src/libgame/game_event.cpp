@@ -67,11 +67,12 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 		switch (event.keysym.scancode)
 		{
 			case SDL_SCANCODE_UP:
-				game_shmGet(SHM_WORLD_ZOOM_SCALE) += 0.1f;
+				game_shmGet(SHM_WORLD_ZOOM_SCALE) += 0.1;
 				break;
 			case SDL_SCANCODE_DOWN:
-				if (game_shmGet(SHM_WORLD_ZOOM_SCALE))
-					game_shmGet(SHM_WORLD_ZOOM_SCALE) -= 0.1f;
+				if (game_shmGet(SHM_WORLD_ZOOM_SCALE) > 0.2)
+					game_shmGet(SHM_WORLD_ZOOM_SCALE) -= 0.1;
+
 				break;
 			case SDL_SCANCODE_SPACE:
 			{
@@ -122,10 +123,18 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 		keyProcessed = true;
 		switch (event.keysym.scancode)
 		{
+			case SDL_SCANCODE_Q:
+				game_shmPut(SHM_WORLD_KEYBOARD_MOVES_CAMERA, !game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA));
+				break;
 			case SDL_SCANCODE_R:
 			{
 				Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
-				if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera->centeredObject)
+				if (game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
+				{
+					mainCamera->position.x = 0;
+					mainCamera->position.y = 0;
+				}
+				else if (mainCamera->centeredObject)
 				{
 					mainCamera->centeredObject->position.x = 0;
 					mainCamera->centeredObject->position.y = 0;
@@ -166,8 +175,7 @@ void game_processKeyboardEvent(SDL_Event& event)
 		return;
 
 	// Forward event to input object
-	if (game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)
-	        && game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->isModuleEnabled(MODULE_EVENT))
+	if (game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT) && game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->isModuleEnabled(MODULE_EVENT))
 	{
 		Game_ObjectEvent objectEvent(&event);
 		game_shmGet(SHM_MISC_KEYBOARD_INPUT_OBJECT)->eventModule->callEventFunction(EVENT_TYPE_TYPED, objectEvent);

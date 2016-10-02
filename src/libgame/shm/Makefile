@@ -6,7 +6,7 @@ INC_HEADERS := shm_generated.h
 LIBGAME_OBJS := shm_generated.o
 
 # Shorthand command line target
-shm_gen: $(SRCDIR)/shm_generated.h
+shm_gen: $(INCDIR)/shm_generated.h
 
 # Rule for generating shm_generated.h and shm_generated.cpp
 $(SRCDIR)/shm_generated.h $(SRCDIR)/shm_generated.cpp: $(SRCDIR)/shm.dat

@@ -51,7 +51,7 @@ bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childP
 bool game_isRenderPosInside(Game_Object& parent, Game_Object& child, bool forceFullyInside)
 {
 	return game_isInside(game_getObjectRenderPos(parent), game_getObjectRenderSize(parent),
-			game_getObjectRenderPos(child),  game_getObjectRenderSize(child), forceFullyInside);
+			game_getObjectRenderPos(child), game_getObjectRenderSize(child), forceFullyInside);
 }
 
 bool game_loadAsset(string assetPath)
@@ -139,12 +139,36 @@ Game_Point game_getObjectRenderPos(Game_Object& object)
 {
 	if (object.isStatic)
 		return object.position;
+
+	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
+
+	// RXro = Render X random object
+	// RYro = Render Y random object
+	int RXro, RYro;
+	if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera.centeredObject)
+	{
+		// RXco = Render X centered object
+		// RYco = Render Y centered object
+		int RXco = (mainCamera.size.width - mainCamera.centeredObject->size.width) / 2;
+		int RYco = (mainCamera.size.height - mainCamera.centeredObject->size.height) / 2;
+		if (object.getID() == mainCamera.centeredObject->getID())
+		{
+			RXro = RXco;
+			RYro = RYco;
+		}
+		else
+		{
+			RXro = RXco - mainCamera.centeredObject->position.x + object.position.x;
+			RYro = RYco - mainCamera.centeredObject->position.y + object.position.y;
+		}
+	}
 	else
 	{
-		int x = object.position.x - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.x;
-		int y = object.position.y - game_shmGet(SHM_WORLD_MAIN_CAMERA).position.y;
-		return {x, y};
+		RXro = -mainCamera.position.x + object.position.x;
+		RYro = -mainCamera.position.y + object.position.y;
 	}
+
+	return {RXro, RYro};
 }
 
 Game_Rect game_getObjectRenderSize(Game_Object& object)
@@ -216,11 +240,9 @@ Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHe
 	return new Game_RenderEquipment(renderer, surface);
 }
 
-Game_Rect game_getTextSize(string text)
+Game_Rect game_getTextSize(string text, TTF_Font* font)
 {
-	TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT);
-	Game_Rect dest = {0, 0};
-
+	Game_Rect dest = {-1, -1};
 	if (TTF_SizeText(font, text.c_str(), &dest.width, &dest.height))
 		cout << "[ERR] Couldn't get size of text '" << text << "'!" << endl;
 
@@ -230,7 +252,7 @@ Game_Rect game_getTextSize(string text)
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
 {
 	if (!object.isModuleEnabled(MODULE_IMAGE_BACKGROUND))
-			return NULL;
+		return NULL;
 
 	string texturePath = object.imageBackgroundModule->getTexturePath();
 	SDL_Surface* loadedSurface = game_getAsset(texturePath);
