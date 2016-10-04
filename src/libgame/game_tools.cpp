@@ -137,13 +137,65 @@ bool game_removeGameObject(Game_Object* object)
 
 Game_Point game_getObjectRenderPos(Game_Object& object)
 {
-	if (object.isStatic)
-		return object.position;
-
-	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
-
 	// RXro = Render X random object
 	// RYro = Render Y random object
+
+	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
+	if (object.isStatic)
+	{
+		if (object.isModuleEnabled(MODULE_MARGIN) && object.marginModule->enabled)
+		{
+			Game_Rect objectSize = game_getObjectRenderSize(object);
+			int RXro, RYro;
+			switch (object.marginModule->floatMode)
+			{
+				case FLOAT_LEFT_TOP:
+					RXro = object.marginModule->marginLeft;
+					RYro = object.marginModule->marginTop;
+					break;
+				case FLOAT_LEFT_CENTER:
+					RXro = object.marginModule->marginLeft;
+					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					break;
+				case FLOAT_LEFT_BOTTOM:
+					RXro = object.marginModule->marginLeft;
+					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					break;
+				case FLOAT_CENTER_TOP:
+					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
+					RYro = object.marginModule->marginTop;
+					break;
+				case FLOAT_CENTER:
+					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
+					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					break;
+				case FLOAT_CENTER_BOTTOM:
+					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
+					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					break;
+				case FLOAT_RIGHT_TOP:
+					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
+					RYro = object.marginModule->marginTop;
+					break;
+				case FLOAT_RIGHT_CENTER:
+					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
+					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					break;
+				case FLOAT_RIGHT_BOTTOM:
+					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
+					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					break;
+				default:
+					RXro = 0;
+					RYro = 0;
+					break;
+			}
+			return {RXro, RYro};
+		}
+		else
+			return object.position;
+	}
+
 	int RXro, RYro;
 	if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera.centeredObject)
 	{

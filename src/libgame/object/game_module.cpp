@@ -200,3 +200,16 @@ Game_ModuleText::Game_ModuleText(Game_Object* parent) :
 	m_textColor.b = 0;
 	m_textColor.a = 0;
 }
+
+Game_ModuleMargin::Game_ModuleMargin(Game_Object* parent) :
+		Game_Module(parent)
+{
+	enabled = true;
+
+	marginTop = 0;
+	marginRight = 0;
+	marginBottom = 0;
+	marginLeft = 0;
+
+	floatMode = FLOAT_LEFT_TOP;
+}

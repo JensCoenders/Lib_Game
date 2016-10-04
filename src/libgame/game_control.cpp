@@ -153,9 +153,6 @@ void game_renderThread()
 		}
 		else if (mainCamera->centeredObject)
 		{
-			// Frame-update centered object
-			mainCamera->centeredObject->runFrameUpdate();
-
 			mainCamera->position.x = -(mainCamera->size.width - mainCamera->centeredObject->size.width) / 2 +
 					mainCamera->centeredObject->position.x;
 			mainCamera->position.y = -(mainCamera->size.height - mainCamera->centeredObject->size.height) / 2 +

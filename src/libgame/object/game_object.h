@@ -4,13 +4,12 @@
 #include <SDL2/SDL.h>
 #include "game_types.h"
 
-/* Function variables */
-
 class Game_Object;
+
+/* Function types */
 
 typedef void (*Game_ObjectFUFunc)(Game_Object& object);
 typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipment* equipment);
-
 typedef void (*Game_ObjectEventFunc)(Game_Object& object, Game_ObjectEvent& eventData);
 
 /* Modules */
@@ -22,7 +21,8 @@ typedef enum Game_ModuleType
 	MODULE_IMAGE_BACKGROUND = 4,
 	MODULE_PROPERTY = 8,
 	MODULE_TEXT = 16,
-	MODULE_ALL = 31
+	MODULE_MARGIN = 32,
+	MODULE_ALL = 63
 
 } Game_ModuleType;
 
@@ -108,6 +108,21 @@ typedef struct Game_ModuleText : public Game_Module
 
 } Game_ModuleText;
 
+typedef struct Game_ModuleMargin : public Game_Module
+{
+	public:
+		bool enabled;
+
+		int marginTop;
+		int marginRight;
+		int marginBottom;
+		int marginLeft;
+		Game_ObjectFloatMode floatMode;
+
+		Game_ModuleMargin(Game_Object* parent);
+
+} Game_ModuleMargin;
+
 /* Object */
 
 class Game_Object
@@ -119,6 +134,7 @@ class Game_Object
 		Game_ModuleImageBackground* imageBackgroundModule;
 		Game_ModuleProperty* propertyModule;
 		Game_ModuleText* textModule;
+		Game_ModuleMargin* marginModule;
 
 		bool isModuleEnabled(Game_ModuleType module);
 		void setModuleEnabled(Game_ModuleType module, bool enabled);
@@ -136,7 +152,7 @@ class Game_Object
 		void requestTextureUpdate();
 		void satisfyTextureUpdate();
 
-		// World vars
+		// World
 		Game_Point position;
 		Game_Rect size;
 		double rotation;

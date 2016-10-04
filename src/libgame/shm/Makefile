@@ -1,14 +1,14 @@
 .PHONY += shm_gen
 
-SHM_SRCDIR := $(SRCDIR)
-
 INC_HEADERS := shm_generated.h
 LIBGAME_OBJS := shm_generated.o
 
-# Shorthand command line target
+SHM_SRCDIR := $(SRCDIR)
+
+# shorthand command line target
 shm_gen: $(INCDIR)/shm_generated.h
 
-# Rule for generating shm_generated.h and shm_generated.cpp
+# rule for generating shm_generated.h and shm_generated.cpp
 $(SRCDIR)/shm_generated.h $(SRCDIR)/shm_generated.cpp: $(SRCDIR)/shm.dat
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)

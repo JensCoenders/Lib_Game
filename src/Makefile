@@ -1,39 +1,40 @@
 .PHONY += jensgame
 
-JENSGAME_OBJS := $(patsubst %.cpp,%.o,$(wildcard $(SRCDIR)/*.cpp))
-JENSGAME_OBJS := $(subst $(SRCDIR),$(OUTDIR),$(JENSGAME_OBJS)) $(OUTDIR)/resources.o
+SUBDIRS := libgame
 
-SDL_DLL_TARGETS := $(wildcard $(RESDIR)/dll/*.dll)
-SDL_DLL_TARGETS := $(subst $(RESDIR)/dll,$(CONF_BINDIR),$(SDL_DLL_TARGETS))
+# target and objects definition
+TARGET := $(JENSGAME)
+JENSGAME_OBJS := $(patsubst %.cpp,%.o,$(wildcard $(SRCDIR)/*.cpp)) $(OUTDIR)/resources.o
+SDL_DLLS := $(wildcard $(RESDIR)/dll/*.dll)
+
+# variable conversion
+JENSGAME_OBJS := $(subst $(SRCDIR),$(OUTDIR),$(JENSGAME_OBJS)) 
+SDL_DLLS := $(subst $(RESDIR)/dll,$(CONFIG_BINDIR),$(SDL_DLLS))
 
 JENSGAME_VERSION_FILE := $(SRCDIR)/testgame.h
 
-SUBDIRS := libgame
-
-# Shorthand command line targets
 jensgame: $(JENSGAME)
 
-# Rule for generating game executable
-$(JENSGAME): $(JENSGAME_OBJS) $(LIBGAME) $(SDL_DLL_TARGETS)
+# rule for generating the game executable
+$(JENSGAME): $(JENSGAME_OBJS) $(LIBGAME) $(SDL_DLLS)
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
-	+g++ -o $@ $(filter %.o,$^) $(addprefix -L,$(DEFAULT_LIB_DIRS)) -lgame $(SDL_LIBS)
+	+g++ -o $@ $(filter %.o,$^) $(addprefix -L,$(LIB_DIRS)) -L$(CONFIG_LIBDIR) -lgame $(SDL_FLAGS)
 
-$(JENSGAME_OBJS): | inc
-
-# Rule for building resource file
+# rule for building the resource file
 $(OUTDIR)/resources.o: $(RESDIR)/resources.rc
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
 	+windres $(subst /,\\,$<) -o $(subst /,\\,$@)
 
-# Rule for updating version in resource file
-$(RESDIR)/resources.rc: $(JENSGAME_VERSION_FILE)
-#	+powershell.exe -File "scripts\update_version.ps1" -ResourceFile $@ -VersionFile $<
-
-# Rule for copying DLL files to bin directory
-$(CONF_BINDIR)/%.dll: $(RESDIR)/dll/%.dll
+# rule for copying dependency dll files to bin directory
+$(CONFIG_BINDIR)/%.dll: $(RESDIR)/dll/%.dll
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
 	+mklink /H $(subst /,\\,$@) $(subst /,\\,$<) >NUL
-	
+
+# rule for updating version in resource file
+# $(RESDIR)/resources.rc: $(JENSGAME_VERSION_FILE)
+#	+powershell.exe -File "scripts\update_version.ps1" -ResourceFile $@ -VersionFile $<
+
+$(JENSGAME_OBJS): | inc

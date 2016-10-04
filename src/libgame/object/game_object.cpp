@@ -47,6 +47,13 @@ void Game_Object::setModuleEnabled(Game_ModuleType module, bool enabled)
 		else
 			delete textModule;
 	}
+	if (module & MODULE_MARGIN)
+	{
+		if (enabled)
+			marginModule = new Game_ModuleMargin(this);
+		else
+			delete marginModule;
+	}
 
 	if (enabled)
 		m_enabledModules |= module;
@@ -105,6 +112,7 @@ Game_Object::Game_Object(int x, int y, int w, int h)
 	imageBackgroundModule = NULL;
 	propertyModule = NULL;
 	textModule = NULL;
+	marginModule = NULL;
 
 	lastRenderedTexture = NULL;
 	isOutsideCameraBounds = false;
