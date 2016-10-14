@@ -4,12 +4,12 @@
 #include <SDL2/SDL.h>
 #include "game_types.h"
 
-class Game_Object;
-
 /* Function types */
 
+class Game_Object;
+
 typedef void (*Game_ObjectFUFunc)(Game_Object& object);
-typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipment* equipment);
+typedef SDL_Surface* (*Game_ObjectTUFunc)(Game_Object& object, Game_RenderEquipment& equipment);
 typedef void (*Game_ObjectEventFunc)(Game_Object& object, Game_ObjectEvent& eventData);
 
 /* Modules */
@@ -21,7 +21,7 @@ typedef enum Game_ModuleType
 	MODULE_IMAGE_BACKGROUND = 4,
 	MODULE_PROPERTY = 8,
 	MODULE_TEXT = 16,
-	MODULE_MARGIN = 32,
+	MODULE_EXTRA_BOUNDS = 32,
 	MODULE_ALL = 63
 
 } Game_ModuleType;
@@ -108,7 +108,7 @@ typedef struct Game_ModuleText : public Game_Module
 
 } Game_ModuleText;
 
-typedef struct Game_ModuleMargin : public Game_Module
+typedef struct Game_ModuleExtraBounds : public Game_Module
 {
 	public:
 		bool enabled;
@@ -117,11 +117,17 @@ typedef struct Game_ModuleMargin : public Game_Module
 		int marginRight;
 		int marginBottom;
 		int marginLeft;
+		int paddingTop;
+		int paddingRight;
+		int paddingBottom;
+		int paddingLeft;
+
+		bool fillScreen;
 		Game_ObjectFloatMode floatMode;
 
-		Game_ModuleMargin(Game_Object* parent);
+		Game_ModuleExtraBounds(Game_Object* parent);
 
-} Game_ModuleMargin;
+} Game_ModuleExtraBounds;
 
 /* Object */
 
@@ -134,7 +140,7 @@ class Game_Object
 		Game_ModuleImageBackground* imageBackgroundModule;
 		Game_ModuleProperty* propertyModule;
 		Game_ModuleText* textModule;
-		Game_ModuleMargin* marginModule;
+		Game_ModuleExtraBounds* extraBoundsModule;
 
 		bool isModuleEnabled(Game_ModuleType module);
 		void setModuleEnabled(Game_ModuleType module, bool enabled);
@@ -145,7 +151,7 @@ class Game_Object
 
 		void runFrameUpdate();
 		void setFrameUpdate(Game_ObjectFUFunc function);
-		SDL_Surface* runTextureUpdate(Game_RenderEquipment* equipment);
+		SDL_Surface* runTextureUpdate(Game_RenderEquipment& equipment);
 		void setTextureUpdate(Game_ObjectTUFunc function);
 
 		bool needsTextureUpdate();

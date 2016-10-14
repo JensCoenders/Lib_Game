@@ -7,7 +7,7 @@ using namespace std;
 
 bool Game_Object::isModuleEnabled(Game_ModuleType module)
 {
-	return (m_enabledModules & module) == module;
+	return m_enabledModules & module;
 }
 
 void Game_Object::setModuleEnabled(Game_ModuleType module, bool enabled)
@@ -47,12 +47,12 @@ void Game_Object::setModuleEnabled(Game_ModuleType module, bool enabled)
 		else
 			delete textModule;
 	}
-	if (module & MODULE_MARGIN)
+	if (module & MODULE_EXTRA_BOUNDS)
 	{
 		if (enabled)
-			marginModule = new Game_ModuleMargin(this);
+			extraBoundsModule = new Game_ModuleExtraBounds(this);
 		else
-			delete marginModule;
+			delete extraBoundsModule;
 	}
 
 	if (enabled)
@@ -72,7 +72,7 @@ void Game_Object::setFrameUpdate(Game_ObjectFUFunc function)
 	m_frameUpdateFunc = function;
 }
 
-SDL_Surface* Game_Object::runTextureUpdate(Game_RenderEquipment* equipment)
+SDL_Surface* Game_Object::runTextureUpdate(Game_RenderEquipment& equipment)
 {
 	if (m_textureUpdateFunc)
 		return m_textureUpdateFunc(*this, equipment);
@@ -112,7 +112,7 @@ Game_Object::Game_Object(int x, int y, int w, int h)
 	imageBackgroundModule = NULL;
 	propertyModule = NULL;
 	textModule = NULL;
-	marginModule = NULL;
+	extraBoundsModule = NULL;
 
 	lastRenderedTexture = NULL;
 	isOutsideCameraBounds = false;

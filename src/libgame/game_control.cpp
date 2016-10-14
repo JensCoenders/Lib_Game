@@ -117,7 +117,7 @@ void game_renderThread()
 					}
 
 					// Update object texture
-					SDL_Surface* surface = currentObject->runTextureUpdate(equipment);
+					SDL_Surface* surface = currentObject->runTextureUpdate(*equipment);
 					if (surface)
 					{
 						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);

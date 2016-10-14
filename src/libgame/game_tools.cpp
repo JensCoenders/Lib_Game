@@ -37,13 +37,11 @@ bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childP
 	// Check if child ends in parent
 	if (!xCheck)
 	{
-		xCheck = (childPos.x < parentPos.x && (childPos.x + childSize.width) >= parentPos.x &&
-				(childPos.x + childSize.width) <= (parentPos.x + parentSize.width));
+		xCheck = (childPos.x < parentPos.x && (childPos.x + childSize.width) >= parentPos.x && (childPos.x + childSize.width) <= (parentPos.x + parentSize.width));
 	}
 	if (!yCheck)
 	{
-		yCheck = (childPos.y < parentPos.y && (childPos.y + childSize.height) >= parentPos.y &&
-				(childPos.y + childSize.height) <= (parentPos.y + parentSize.height));
+		yCheck = (childPos.y < parentPos.y && (childPos.y + childSize.height) >= parentPos.y && (childPos.y + childSize.height) <= (parentPos.y + parentSize.height));
 	}
 	return (xCheck && yCheck);
 }
@@ -137,110 +135,120 @@ bool game_removeGameObject(Game_Object* object)
 
 Game_Point game_getObjectRenderPos(Game_Object& object)
 {
-	// RXro = Render X random object
-	// RYro = Render Y random object
-
 	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	if (object.isStatic)
 	{
-		if (object.isModuleEnabled(MODULE_MARGIN) && object.marginModule->enabled)
+		if (object.isModuleEnabled(MODULE_EXTRA_BOUNDS) && object.extraBoundsModule->enabled)
 		{
 			Game_Rect objectSize = game_getObjectRenderSize(object);
-			int RXro, RYro;
-			switch (object.marginModule->floatMode)
+			int targetX, targetY;
+			switch (object.extraBoundsModule->floatMode)
 			{
 				case FLOAT_LEFT_TOP:
-					RXro = object.marginModule->marginLeft;
-					RYro = object.marginModule->marginTop;
+					targetX = object.extraBoundsModule->marginLeft + object.extraBoundsModule->paddingLeft;
+					targetY = object.extraBoundsModule->marginTop + object.extraBoundsModule->paddingTop;
 					break;
 				case FLOAT_LEFT_CENTER:
-					RXro = object.marginModule->marginLeft;
-					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					targetX = object.extraBoundsModule->marginLeft + object.extraBoundsModule->paddingLeft;
+					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_LEFT_BOTTOM:
-					RXro = object.marginModule->marginLeft;
-					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					targetX = object.extraBoundsModule->marginLeft + object.extraBoundsModule->paddingLeft;
+					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+							- object.extraBoundsModule->paddingBottom;
 					break;
 				case FLOAT_CENTER_TOP:
-					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
-					RYro = object.marginModule->marginTop;
+					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetY = object.extraBoundsModule->marginTop + object.extraBoundsModule->paddingTop;
 					break;
 				case FLOAT_CENTER:
-					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
-					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_CENTER_BOTTOM:
-					RXro = (mainCamera.size.width - objectSize.width) / 2 - object.marginModule->marginLeft;
-					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+							- object.extraBoundsModule->paddingBottom;
 					break;
 				case FLOAT_RIGHT_TOP:
-					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
-					RYro = object.marginModule->marginTop;
+					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+							- object.extraBoundsModule->paddingRight;
+					targetY = object.extraBoundsModule->marginTop + object.extraBoundsModule->paddingTop;
 					break;
 				case FLOAT_RIGHT_CENTER:
-					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
-					RYro = (mainCamera.size.height - objectSize.height) / 2 - object.marginModule->marginTop;
+					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+							- object.extraBoundsModule->paddingRight;
+					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_RIGHT_BOTTOM:
-					RXro = (mainCamera.size.width - objectSize.width - object.marginModule->marginRight);
-					RYro = (mainCamera.size.height - objectSize.height - object.marginModule->marginBottom);
+					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+							- object.extraBoundsModule->paddingRight;
+					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+							- object.extraBoundsModule->paddingBottom;
 					break;
 				default:
-					RXro = 0;
-					RYro = 0;
+					targetX = 0;
+					targetY = 0;
 					break;
 			}
-			return {RXro, RYro};
+			return {targetX, targetY};
 		}
 		else
 			return object.position;
 	}
 
-	int RXro, RYro;
+	int targetX, targetY;
 	if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera.centeredObject)
 	{
-		// RXco = Render X centered object
-		// RYco = Render Y centered object
-		int RXco = (mainCamera.size.width - mainCamera.centeredObject->size.width) / 2;
-		int RYco = (mainCamera.size.height - mainCamera.centeredObject->size.height) / 2;
+		int centeredObjectX = (mainCamera.size.width - mainCamera.centeredObject->size.width) / 2;
+		int centeredObjectY = (mainCamera.size.height - mainCamera.centeredObject->size.height) / 2;
 		if (object.getID() == mainCamera.centeredObject->getID())
 		{
-			RXro = RXco;
-			RYro = RYco;
+			targetX = centeredObjectX;
+			targetY = centeredObjectY;
 		}
 		else
 		{
-			RXro = RXco - mainCamera.centeredObject->position.x + object.position.x;
-			RYro = RYco - mainCamera.centeredObject->position.y + object.position.y;
+			targetX = centeredObjectX - mainCamera.centeredObject->position.x + object.position.x;
+			targetY = centeredObjectY - mainCamera.centeredObject->position.y + object.position.y;
 		}
 	}
 	else
 	{
-		RXro = -mainCamera.position.x + object.position.x;
-		RYro = -mainCamera.position.y + object.position.y;
+		targetX = -mainCamera.position.x + object.position.x;
+		targetY = -mainCamera.position.y + object.position.y;
 	}
 
-	return {RXro, RYro};
+	return {targetX, targetY};
 }
 
 Game_Rect game_getObjectRenderSize(Game_Object& object)
 {
 	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
-	int width = object.size.width;
-	int height = object.size.height;
+	int objectWidth = object.size.width;
+	int objectHeight = object.size.height;
 
-	if (width < 0)
-		width += (mainCamera.size.width + 1);
-	if (height < 0)
-		height += (mainCamera.size.height + 1);
+	if (object.isModuleEnabled(MODULE_EXTRA_BOUNDS) && object.extraBoundsModule->enabled)
+	{
+		if (object.extraBoundsModule->fillScreen)
+		{
+			objectWidth = mainCamera.size.width;
+			objectHeight = mainCamera.size.height;
+		}
+
+		objectWidth -= object.extraBoundsModule->paddingLeft;
+		objectWidth -= object.extraBoundsModule->paddingRight;
+		objectHeight -= object.extraBoundsModule->paddingTop;
+		objectHeight -= object.extraBoundsModule->paddingBottom;
+	}
 
 	if (!object.isStatic)
 	{
-		width *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
-		height *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
+		objectWidth *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
+		objectHeight *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
 	}
 
-	return {width, height};
+	return {objectWidth, objectHeight};
 }
 
 Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer, LinkedListNode<Game_Object>** outputNode)
@@ -272,8 +280,9 @@ Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outpu
 Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight)
 {
 	// Create surface
-	SDL_Surface* surface = SDL_CreateRGBSurface(0, surfaceWidth, surfaceHeight, 32, GAME_SURFACE_RMASK, GAME_SURFACE_GMASK,
-	        GAME_SURFACE_BMASK, GAME_SURFACE_AMASK);
+	SDL_Surface* surface = SDL_CreateRGBSurface(0, surfaceWidth, surfaceHeight, 32, GAME_SURFACE_RMASK,
+	GAME_SURFACE_GMASK,
+	GAME_SURFACE_BMASK, GAME_SURFACE_AMASK);
 
 	if (!surface)
 	{
@@ -301,7 +310,7 @@ Game_Rect game_getTextSize(string text, TTF_Font* font)
 	return dest;
 }
 
-SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment)
+SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equipment)
 {
 	if (!object.isModuleEnabled(MODULE_IMAGE_BACKGROUND))
 		return NULL;
@@ -320,7 +329,7 @@ SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equ
 	return game_getAsset(texturePath);
 }
 
-SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment)
+SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment& equipment)
 {
 	if (!object.isModuleEnabled(MODULE_TEXT))
 		return NULL;

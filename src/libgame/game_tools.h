@@ -32,8 +32,8 @@ Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHe
 /* Misc */
 Game_Rect game_getTextSize(std::string text, TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT));
 
-SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment* equipment);
-SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment* equipment);
+SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equipment);
+SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment& equipment);
 
 /* Template combine functions */
 template<typename First>

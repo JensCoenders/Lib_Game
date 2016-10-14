@@ -201,7 +201,7 @@ Game_ModuleText::Game_ModuleText(Game_Object* parent) :
 	m_textColor.a = 0;
 }
 
-Game_ModuleMargin::Game_ModuleMargin(Game_Object* parent) :
+Game_ModuleExtraBounds::Game_ModuleExtraBounds(Game_Object* parent) :
 		Game_Module(parent)
 {
 	enabled = true;
@@ -211,5 +211,11 @@ Game_ModuleMargin::Game_ModuleMargin(Game_Object* parent) :
 	marginBottom = 0;
 	marginLeft = 0;
 
+	paddingTop = 0;
+	paddingRight = 0;
+	paddingBottom = 0;
+	paddingLeft = 0;
+
+	fillScreen = false;
 	floatMode = FLOAT_LEFT_TOP;
 }

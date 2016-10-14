@@ -13,6 +13,11 @@ SDL_DLLS := $(subst $(RESDIR)/dll,$(CONFIG_BINDIR),$(SDL_DLLS))
 
 JENSGAME_VERSION_FILE := $(SRCDIR)/testgame.h
 
+ifeq ($(CONFIG),release)
+RELEASE_LIBS := -static-libgcc -static-libstdc++
+endif
+
+# shorthand command line targets
 jensgame: $(JENSGAME)
 
 # rule for generating the game executable
