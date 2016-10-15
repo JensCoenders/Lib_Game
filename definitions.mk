@@ -6,6 +6,8 @@
 BINDIR := bin
 INCDIR := include
 LIBDIR := lib
+SRCDIR :=
+OUTDIR :=
 ROOT_SRCDIR := src
 ROOT_OUTDIR := out
 
@@ -15,32 +17,21 @@ SCRIPTSDIR := scripts
 
 # automatic directory variables
 CONFIG_BINDIR := $(BINDIR)/$(CONFIG)
-CONFIG_LIBDIR := $(LIBDIR)/$(CONFIG)
 CONFIG_OUTDIR := $(ROOT_OUTDIR)/$(CONFIG)
 
-# target variables
-JENSGAME := $(CONFIG_BINDIR)/Game.exe
-LIBGAME := $(CONFIG_LIBDIR)/libgame.a
-
 # global variables
+G_BINARY_FILES :=
 G_INC_HEADERS :=
 G_LIBGAME_OBJS :=
+G_JENSGAME_OBJS :=
 
-# compiler flags
-INC_DIRS := $(INCDIR) $(DEPDIR)/include
-CPPFLAGS = -std=c++11 -MMD -MP -MT '$@' -MF '$(CONFIG_OUTDIR)/$*.d'
-LIB_DIRS := $(LIBDIR) $(DEPDIR)/lib
-
-ifeq ($(CONFIG),debug)
-	CPPFLAGS += -g3 -O0 -DGAME_DEBUG
- else
-	CPPFLAGS += -O3 -Wall -Wextra
- endif
+# targets
+JENSGAME := $(CONFIG_BINDIR)/Game.exe
+LIBGAME := $(CONFIG_BINDIR)/libgame.a
 
 # misc variables
 DIRECTORY_GUARD = -@if not exist $(subst /,\\,$(dir $@)) (mkdir $(subst /,\\,$(dir $@)))
 TARGET_GUARD = -@if exist $(subst /,\\,$@) (del $(subst /,\\,$@))
-SDL_FLAGS := -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 
 # _copy_file macro: $(1) = name of global variable, $(2) = target directory, $(3) = source directory, $(4) = file name
 define _copy_file
@@ -58,8 +49,8 @@ define _subdir_include
 PSRCDIR-$(1) := $$(SRCDIR)
 POUTDIR-$(1) := $$(OUTDIR)
 
-ifeq ($(1),$(ROOT_SRCDIR))
-SRCDIR := $(ROOT_SRCDIR)
+ifeq ($$(SRCDIR),)
+SRCDIR := $(1)
 OUTDIR := $(CONFIG_OUTDIR)
 else
 SRCDIR := $$(SRCDIR)/$(1)
@@ -67,16 +58,20 @@ OUTDIR := $$(OUTDIR)/$(1)
 endif
 
 # reset local variables
+BINARY_FILES :=
 INC_HEADERS :=
 LIBGAME_OBJS :=
+JENSGAME_OBJS :=
 SUBDIRS :=
 
 # include subdirectory makefile
 include $$(SRCDIR)/Makefile
 
 # process local variables
+$$(foreach file,$$(BINARY_FILES),$$(eval $$(call _copy_file,G_BINARY_FILES,$$(CONFIG_BINDIR),$$(SRCDIR),$$(file))))
 $$(foreach header,$$(INC_HEADERS),$$(eval $$(call _copy_file,G_INC_HEADERS,$$(INCDIR),$$(SRCDIR),$$(header))))
 $$(foreach obj,$$(LIBGAME_OBJS),$$(eval G_LIBGAME_OBJS += $$(OUTDIR)/$$(obj)))
+$$(foreach obj,$$(JENSGAME_OBJS),$$(eval G_JENSGAME_OBJS += $$(OUTDIR)/$$(obj)))
 
 $$(call subdir_include,$$(SUBDIRS))
 

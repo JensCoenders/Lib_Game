@@ -1,2 +1,2 @@
-INC_HEADERS := $(subst $(SRCDIR)/,,$(wildcard $(SRCDIR)/*.h))
-LIBGAME_OBJS := $(subst $(SRCDIR)/,,$(patsubst %.cpp,%.o,$(wildcard $(SRCDIR)/*.cpp)))
+INC_HEADERS := game_object.h
+LIBGAME_OBJS := game_module.o game_object.o

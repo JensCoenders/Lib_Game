@@ -1,10 +1,8 @@
 .PHONY += libgame
 
-INC_HEADERS := $(subst $(SRCDIR)/,,$(wildcard $(SRCDIR)/*.h))
-SUBDIRS := object shm
+INC_HEADERS := game_control.h game_defs.h game_event.h game_shm.h game_thread.h game_tools.h game_types.h game.h
+LIBGAME_OBJS := game_control.o game_event.o game_thread.o game_tools.o game_types.o
 
-# target and objects definition
-TARGET := $(LIBGAME)
-LIBGAME_OBJS := $(subst $(SRCDIR)/,,$(patsubst %.cpp,%.o,$(wildcard $(SRCDIR)/*.cpp)))
+SUBDIRS := object shm
 
 libgame: $(LIBGAME)
