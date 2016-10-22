@@ -26,6 +26,6 @@
 
 #endif
 
-#define GAME_DEBUG_CHECK if (game_shmGet(SHM_GAME_DEBUG_MODE))
+#define GAME_DEBUG_CHECK if (gameVar_debugMode)
 
 #endif

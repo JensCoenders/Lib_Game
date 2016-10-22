@@ -5,7 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "game_object.h"
-#include "game_shm.h"
+#include "game_property.h"
 
 /* General */
 bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childPos, Game_Rect childSize, bool forcedInside);
@@ -30,7 +30,7 @@ Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outpu
 Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight);
 
 /* Misc */
-Game_Rect game_getTextSize(std::string text, TTF_Font* font = game_shmGet(SHM_MISC_GUI_FONT));
+Game_Rect game_getTextSize(std::string text, TTF_Font* font = gameVar_guiFont);
 
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equipment);
 SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment& equipment);
@@ -51,7 +51,7 @@ std::string combineStringPath(First firstString, Rest&... rest)
 template<typename First, typename ... Rest>
 std::string game_getAssetPath(First name, Rest&... subDirs)
 {
-	return game_shmGet(SHM_ASSETS_DIR) + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
+	return gameVar_assetDir + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
 }
 
 template<typename First>

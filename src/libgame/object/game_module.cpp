@@ -1,6 +1,6 @@
 #include "game_object.h"
 #include "game_tools.h"
-#include "game_shm.h"
+#include "game_property.h"
 
 using namespace std;
 
@@ -182,7 +182,7 @@ SDL_Surface* Game_ModuleText::renderText()
 		return NULL;
 
 	// Create text
-	return TTF_RenderText_Blended(game_shmGet(SHM_MISC_GUI_FONT), m_text.c_str(), m_textColor);
+	return TTF_RenderText_Blended(gameVar_guiFont, m_text.c_str(), m_textColor);
 }
 
 Game_ModuleText::Game_ModuleText(Game_Object* parent) :

@@ -2,8 +2,9 @@
 #include <SDL2/SDL_image.h>
 
 #include "game_defs.h"
-#include "game_shm.h"
 #include "game_tools.h"
+
+#include "game_property.h"
 #include "game_types.h"
 
 using namespace std;
@@ -60,14 +61,14 @@ bool game_loadAsset(string assetPath)
 
 	LinkedListNode<Game_Asset>* newNode = new LinkedListNode<Game_Asset>();
 	newNode->value = new Game_Asset(assetPath, loadedSurface);
-	newNode->nextNode = game_shmGet(SHM_ASSETS_LOADED_ASSETS);
-	game_shmPut(SHM_ASSETS_LOADED_ASSETS, newNode);
+	newNode->nextNode = gameVar_loadedAssets;
+	gameVar_loadedAssets = newNode;
 	return true;
 }
 
 SDL_Surface* game_getAsset(string assetPath)
 {
-	LinkedListNode<Game_Asset>* currentNode = game_shmGet(SHM_ASSETS_LOADED_ASSETS);
+	LinkedListNode<Game_Asset>* currentNode = gameVar_loadedAssets;
 	while (currentNode)
 	{
 		if (currentNode->value->assetPath == assetPath)
@@ -84,8 +85,8 @@ void game_freeAssets()
 	GAME_DEBUG_CHECK
 		cout << "[DEBUG] Freeing assets... ";
 
-	if (game_shmGet(SHM_ASSETS_LOADED_ASSETS))
-		delete game_shmGet(SHM_ASSETS_LOADED_ASSETS);
+	if (gameVar_loadedAssets)
+		delete gameVar_loadedAssets;
 
 	GAME_DEBUG_CHECK
 		cout << "[OK]" << endl;
@@ -99,7 +100,7 @@ bool game_addGameObject(Game_Object* object, int layerID)
 		return false;
 	}
 
-	Game_RenderLayer* layer = &game_shmGet(SHM_RENDER_LAYERS)[layerID];
+	Game_RenderLayer* layer = &gameVar_renderLayers[layerID];
 	LinkedListNode<Game_Object>* newNode = new LinkedListNode<Game_Object>();
 	newNode->value = object;
 	newNode->nextNode = layer->objectList;
@@ -135,7 +136,6 @@ bool game_removeGameObject(Game_Object* object)
 
 Game_Point game_getObjectRenderPos(Game_Object& object)
 {
-	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	if (object.isStatic)
 	{
 		if (object.isModuleEnabled(MODULE_EXTRA_BOUNDS) && object.extraBoundsModule->enabled)
@@ -150,40 +150,40 @@ Game_Point game_getObjectRenderPos(Game_Object& object)
 					break;
 				case FLOAT_LEFT_CENTER:
 					targetX = object.extraBoundsModule->marginLeft + object.extraBoundsModule->paddingLeft;
-					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
+					targetY = (gameVar_mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_LEFT_BOTTOM:
 					targetX = object.extraBoundsModule->marginLeft + object.extraBoundsModule->paddingLeft;
-					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+					targetY = (gameVar_mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
 							- object.extraBoundsModule->paddingBottom;
 					break;
 				case FLOAT_CENTER_TOP:
-					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetX = (gameVar_mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
 					targetY = object.extraBoundsModule->marginTop + object.extraBoundsModule->paddingTop;
 					break;
 				case FLOAT_CENTER:
-					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
-					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
+					targetX = (gameVar_mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetY = (gameVar_mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_CENTER_BOTTOM:
-					targetX = (mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
-					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+					targetX = (gameVar_mainCamera.size.width - objectSize.width) / 2 - object.extraBoundsModule->marginLeft;
+					targetY = (gameVar_mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
 							- object.extraBoundsModule->paddingBottom;
 					break;
 				case FLOAT_RIGHT_TOP:
-					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+					targetX = (gameVar_mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
 							- object.extraBoundsModule->paddingRight;
 					targetY = object.extraBoundsModule->marginTop + object.extraBoundsModule->paddingTop;
 					break;
 				case FLOAT_RIGHT_CENTER:
-					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+					targetX = (gameVar_mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
 							- object.extraBoundsModule->paddingRight;
-					targetY = (mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
+					targetY = (gameVar_mainCamera.size.height - objectSize.height) / 2 - object.extraBoundsModule->marginTop;
 					break;
 				case FLOAT_RIGHT_BOTTOM:
-					targetX = (mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
+					targetX = (gameVar_mainCamera.size.width - objectSize.width - object.extraBoundsModule->marginRight)
 							- object.extraBoundsModule->paddingRight;
-					targetY = (mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
+					targetY = (gameVar_mainCamera.size.height - objectSize.height - object.extraBoundsModule->marginBottom)
 							- object.extraBoundsModule->paddingBottom;
 					break;
 				default:
@@ -198,25 +198,25 @@ Game_Point game_getObjectRenderPos(Game_Object& object)
 	}
 
 	int targetX, targetY;
-	if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera.centeredObject)
+	if (!gameVar_keyboardMovesCamera && gameVar_mainCamera.centeredObject)
 	{
-		int centeredObjectX = (mainCamera.size.width - mainCamera.centeredObject->size.width) / 2;
-		int centeredObjectY = (mainCamera.size.height - mainCamera.centeredObject->size.height) / 2;
-		if (object.getID() == mainCamera.centeredObject->getID())
+		int centeredObjectX = (gameVar_mainCamera.size.width - gameVar_mainCamera.centeredObject->size.width) / 2;
+		int centeredObjectY = (gameVar_mainCamera.size.height - gameVar_mainCamera.centeredObject->size.height) / 2;
+		if (object.getID() == gameVar_mainCamera.centeredObject->getID())
 		{
 			targetX = centeredObjectX;
 			targetY = centeredObjectY;
 		}
 		else
 		{
-			targetX = centeredObjectX - mainCamera.centeredObject->position.x + object.position.x;
-			targetY = centeredObjectY - mainCamera.centeredObject->position.y + object.position.y;
+			targetX = centeredObjectX - gameVar_mainCamera.centeredObject->position.x + object.position.x;
+			targetY = centeredObjectY - gameVar_mainCamera.centeredObject->position.y + object.position.y;
 		}
 	}
 	else
 	{
-		targetX = -mainCamera.position.x + object.position.x;
-		targetY = -mainCamera.position.y + object.position.y;
+		targetX = -gameVar_mainCamera.position.x + object.position.x;
+		targetY = -gameVar_mainCamera.position.y + object.position.y;
 	}
 
 	return {targetX, targetY};
@@ -224,7 +224,6 @@ Game_Point game_getObjectRenderPos(Game_Object& object)
 
 Game_Rect game_getObjectRenderSize(Game_Object& object)
 {
-	Game_Camera& mainCamera = game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	int objectWidth = object.size.width;
 	int objectHeight = object.size.height;
 
@@ -232,8 +231,8 @@ Game_Rect game_getObjectRenderSize(Game_Object& object)
 	{
 		if (object.extraBoundsModule->fillScreen)
 		{
-			objectWidth = mainCamera.size.width;
-			objectHeight = mainCamera.size.height;
+			objectWidth = gameVar_mainCamera.size.width;
+			objectHeight = gameVar_mainCamera.size.height;
 		}
 
 		objectWidth -= object.extraBoundsModule->paddingLeft;
@@ -244,8 +243,8 @@ Game_Rect game_getObjectRenderSize(Game_Object& object)
 
 	if (!object.isStatic)
 	{
-		objectWidth *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
-		objectHeight *= game_shmGet(SHM_WORLD_ZOOM_SCALE);
+		objectWidth *= gameVar_zoomScale;
+		objectHeight *= gameVar_zoomScale;
 	}
 
 	return {objectWidth, objectHeight};
@@ -255,7 +254,7 @@ Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outpu
 {
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		Game_RenderLayer& currentLayer = game_shmGet(SHM_RENDER_LAYERS)[i];
+		Game_RenderLayer& currentLayer = gameVar_renderLayers[i];
 		LinkedListNode<Game_Object>* currentNode = currentLayer.objectList;
 		while (currentNode)
 		{

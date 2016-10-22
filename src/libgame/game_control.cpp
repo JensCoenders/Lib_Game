@@ -8,7 +8,7 @@
 #include "game_control.h"
 #include "game_defs.h"
 #include "game_event.h"
-#include "game_shm.h"
+#include "game_property.h"
 #include "game_thread.h"
 #include "game_tools.h"
 
@@ -22,7 +22,7 @@ void game_runMainLoop()
 	game_startRenderThread();
 
 	cout << "[INFO] Started main thread" << endl;
-	while (game_shmGet(SHM_GAME_IS_RUNNING))
+	while (gameVar_isRunning)
 	{
 		// Wait and poll events
 		SDL_Event event;
@@ -54,11 +54,10 @@ void game_renderThread()
 	cout << "[INFO] Started render thread" << endl;
 
 	// Setup renderer
-	SDL_Renderer* mainRenderer = game_shmGet(SHM_SDL_MAIN_RENDERER);
-	SDL_SetRenderDrawColor(mainRenderer, 255, 255, 255, 0);
+	SDL_SetRenderDrawColor(gameVar_mainRenderer, 255, 255, 255, 0);
 
 	// Setup FPS object
-	if (!game_shmGet(SHM_MISC_FPS_OBJECT))
+	if (!gameVar_fpsObject)
 	{
 		GAME_DEBUG_CHECK
 			cout << "[DEBUG] Setting up FPS object... ";
@@ -69,7 +68,7 @@ void game_renderThread()
 		fpsObject->textModule->setTextColor({255, 255, 0, 255});
 		fpsObject->propertyModule->setProperty("LIBGAME_CREATED", true);
 
-		game_shmPut(SHM_MISC_FPS_OBJECT, fpsObject);
+		gameVar_fpsObject = fpsObject;
 		game_addGameObject(fpsObject, GAME_LAYER_GUI_FOREGROUND);
 
 		GAME_DEBUG_CHECK
@@ -77,17 +76,15 @@ void game_renderThread()
 	}
 
 	// Rendering loop
-	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
 	int startTime = clock(), sleepTime = 15, frameCount = 0;
-
-	while (game_shmGet(SHM_GAME_IS_RUNNING))
+	while (gameVar_isRunning)
 	{
-		SDL_RenderClear(mainRenderer);
+		SDL_RenderClear(gameVar_mainRenderer);
 
 		// Update all objects
 		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
-			LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
+			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList;
 			while (currentNode)
 			{
 				Game_Object* currentObject = currentNode->value;
@@ -120,7 +117,7 @@ void game_renderThread()
 					SDL_Surface* surface = currentObject->runTextureUpdate(*equipment);
 					if (surface)
 					{
-						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(mainRenderer, surface);
+						currentObject->lastRenderedTexture = SDL_CreateTextureFromSurface(gameVar_mainRenderer, surface);
 						if (!currentObject->lastRenderedTexture)
 							cout << "[ERR] Couldn't create texture from surface: " << SDL_GetError() << endl;
 						else
@@ -139,30 +136,34 @@ void game_renderThread()
 		}
 
 		// Update camera position
-		if (game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
+		if (gameVar_keyboardMovesCamera)
 		{
-			if (mainCamera->movementDirection & 0x1)
-				mainCamera->position.y -= mainCamera->movementSpeed;
-			else if (mainCamera->movementDirection & 0x2)
-				mainCamera->position.y += mainCamera->movementSpeed;
+			unsigned char movementDirection = gameVar_mainCamera.movementDirection;
+			int movementSpeed = gameVar_mainCamera.movementSpeed;
+			Game_Point* position = &gameVar_mainCamera.position;
 
-			if (mainCamera->movementDirection & 0x4)
-				mainCamera->position.x -= mainCamera->movementSpeed;
-			else if (mainCamera->movementDirection & 0x8)
-				mainCamera->position.x += mainCamera->movementSpeed;
+			if (movementDirection & 0x1)
+				position->y -= movementSpeed;
+			else if (movementDirection & 0x2)
+				position->y += movementSpeed;
+
+			if (movementDirection & 0x4)
+				position->x -= movementSpeed;
+			else if (movementDirection & 0x8)
+				position->x += movementSpeed;
 		}
-		else if (mainCamera->centeredObject)
+		else if (gameVar_mainCamera.centeredObject)
 		{
-			mainCamera->position.x = -(mainCamera->size.width - mainCamera->centeredObject->size.width) / 2 +
-					mainCamera->centeredObject->position.x;
-			mainCamera->position.y = -(mainCamera->size.height - mainCamera->centeredObject->size.height) / 2 +
-					mainCamera->centeredObject->position.y;
+			gameVar_mainCamera.position.x = -(gameVar_mainCamera.size.width - gameVar_mainCamera.centeredObject->size.width) / 2 +
+					gameVar_mainCamera.centeredObject->position.x;
+			gameVar_mainCamera.position.y = -(gameVar_mainCamera.size.height - gameVar_mainCamera.centeredObject->size.height) / 2 +
+					gameVar_mainCamera.centeredObject->position.y;
 		}
 
 		// Draw all objects
 		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
 		{
-			LinkedListNode<Game_Object>* currentNode = game_shmGet(SHM_RENDER_LAYERS)[i].objectList;
+			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList;
 			while (currentNode)
 			{
 				Game_Object* currentObject = currentNode->value;
@@ -178,9 +179,9 @@ void game_renderThread()
 					renderRect.w = renderSize.width;
 					renderRect.h = renderSize.height;
 
-					if (currentObject->isStatic || game_isInside({0, 0}, mainCamera->size, renderPos, renderSize, false))
+					if (currentObject->isStatic || game_isInside({0, 0}, gameVar_mainCamera.size, renderPos, renderSize, false))
 					{
-						SDL_RenderCopyEx(mainRenderer, currentObject->lastRenderedTexture, NULL, &renderRect,
+						SDL_RenderCopyEx(gameVar_mainRenderer, currentObject->lastRenderedTexture, NULL, &renderRect,
 						        currentObject->rotation, NULL, SDL_FLIP_NONE);
 
 						currentObject->isOutsideCameraBounds = false;
@@ -197,17 +198,17 @@ void game_renderThread()
 		GAME_DEBUG_CHECK
 		{
 			SDL_Rect indicRectCamPos;
-			if (!game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA) && mainCamera->centeredObject)
+			if (!gameVar_keyboardMovesCamera && gameVar_mainCamera.centeredObject)
 			{
-				indicRectCamPos.x = (mainCamera->size.width - mainCamera->centeredObject->size.width) / 2
-						- mainCamera->centeredObject->position.x - 5;
-				indicRectCamPos.y = (mainCamera->size.height - mainCamera->centeredObject->size.height) / 2
-						- mainCamera->centeredObject->position.y - 5;
+				indicRectCamPos.x = (gameVar_mainCamera.size.width - gameVar_mainCamera.centeredObject->size.width) / 2
+						- gameVar_mainCamera.centeredObject->position.x - 5;
+				indicRectCamPos.y = (gameVar_mainCamera.size.height - gameVar_mainCamera.centeredObject->size.height) / 2
+						- gameVar_mainCamera.centeredObject->position.y - 5;
 			}
 			else
 			{
-				indicRectCamPos.x = -mainCamera->position.x - 5;
-				indicRectCamPos.y = -mainCamera->position.y - 5;
+				indicRectCamPos.x = -gameVar_mainCamera.position.x - 5;
+				indicRectCamPos.y = -gameVar_mainCamera.position.y - 5;
 			}
 
 			if (indicRectCamPos.x - 5 <= 0)
@@ -218,26 +219,26 @@ void game_renderThread()
 			indicRectCamPos.w = 10;
 			indicRectCamPos.h = 10;
 
-			SDL_SetRenderDrawColor(mainRenderer, 255, 0, 0, 0);
-			SDL_RenderFillRect(mainRenderer, &indicRectCamPos);
+			SDL_SetRenderDrawColor(gameVar_mainRenderer, 255, 0, 0, 0);
+			SDL_RenderFillRect(gameVar_mainRenderer, &indicRectCamPos);
 
-			SDL_Surface* textSurface = TTF_RenderText_Blended(game_shmGet(SHM_MISC_GUI_FONT), "(0, 0)", {0, 0, 255, 0});
-			SDL_Texture* textTexture = SDL_CreateTextureFromSurface(mainRenderer, textSurface);
+			SDL_Surface* textSurface = TTF_RenderText_Blended(gameVar_guiFont, "(0, 0)", {0, 0, 255, 0});
+			SDL_Texture* textTexture = SDL_CreateTextureFromSurface(gameVar_mainRenderer, textSurface);
 
 			SDL_Rect textRect;
-			textRect.x = (mainCamera->position.x + 40 < 0? mainCamera->position.x * -1 : 43) - 40;
-			textRect.y = (mainCamera->position.y + 35 < 0? mainCamera->position.y * -1 : 38) - 35;
+			textRect.x = (gameVar_mainCamera.position.x + 40 < 0? gameVar_mainCamera.position.x * -1 : 43) - 40;
+			textRect.y = (gameVar_mainCamera.position.y + 35 < 0? gameVar_mainCamera.position.y * -1 : 38) - 35;
 			textRect.w = textSurface->w;
 			textRect.h = textSurface->h;
 
-			SDL_RenderCopy(mainRenderer, textTexture, NULL, &textRect);
+			SDL_RenderCopy(gameVar_mainRenderer, textTexture, NULL, &textRect);
 			SDL_FreeSurface(textSurface);
 			SDL_DestroyTexture(textTexture);
 
-			SDL_SetRenderDrawColor(mainRenderer, 255, 255, 255, 0);
+			SDL_SetRenderDrawColor(gameVar_mainRenderer, 255, 255, 255, 0);
 		}
 
-		SDL_RenderPresent(mainRenderer);
+		SDL_RenderPresent(gameVar_mainRenderer);
 		frameCount++;
 
 		// Check if a second has passed
@@ -247,18 +248,18 @@ void game_renderThread()
 			float fps = ((float) frameCount) / ((float) (newTime - startTime)) * CLOCKS_PER_SEC;
 
 			// Display FPS if necessary
-			if (game_shmGet(SHM_GAME_USE_FPS_COUNTER) && game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_TEXT))
+			if (gameVar_useFpsCounter && gameVar_fpsObject->isModuleEnabled(MODULE_TEXT))
 			{
 				ostringstream stringStream;
 				stringStream << "FPS: " << fps;
-				game_shmGet(SHM_MISC_FPS_OBJECT)->textModule->setText(stringStream.str());
+				gameVar_fpsObject->textModule->setText(stringStream.str());
 
 				GAME_DEBUG_CHECK
 					cout << "[DEBUG] " << stringStream.str() << endl;
 			}
 
 			// Update sleep time if necessary
-			int targetFps = game_shmGet(SHM_GAME_TARGET_FPS);
+			int targetFps = gameVar_targetFps;
 			if (targetFps > 0 && (fps < targetFps - 2 || fps > targetFps + 2))
 				sleepTime *= fps / targetFps;
 
@@ -270,10 +271,10 @@ void game_renderThread()
 	}
 
 	// Delete FPS object if it wasn't manually created
-	if (game_shmGet(SHM_MISC_FPS_OBJECT) && game_shmGet(SHM_MISC_FPS_OBJECT)->isModuleEnabled(MODULE_PROPERTY)
-	        && game_shmGet(SHM_MISC_FPS_OBJECT)->propertyModule->getBoolProperty("LIBGAME_CREATED", false))
+	if (gameVar_fpsObject && gameVar_fpsObject->isModuleEnabled(MODULE_PROPERTY)
+	        && gameVar_fpsObject->propertyModule->getBoolProperty("LIBGAME_CREATED", false))
 	{
-		delete game_shmGet(SHM_MISC_FPS_OBJECT);
+		delete gameVar_fpsObject;
 
 		GAME_DEBUG_CHECK
 			cout << "[DEBUG] Deleted self-constructed FPS object" << endl;
@@ -287,7 +288,7 @@ void game_renderThread()
 
 bool game_startRenderThread()
 {
-	game_shmPut(SHM_GAME_IS_RUNNING, true);
+	gameVar_isRunning = true;
 
 	if ((g_renderThreadID = game_startThread(game_renderThread)))
 	{
@@ -305,7 +306,7 @@ bool game_startRenderThread()
 
 void game_stopRenderThread(bool join)
 {
-	game_shmPut(SHM_GAME_IS_RUNNING, false);
+	gameVar_isRunning = false;
 
 	if (join)
 	{
@@ -318,15 +319,8 @@ void game_stopRenderThread(bool join)
 
 int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowStartPos)
 {
-	if (game_shmGet(SHM_SDL_INITIALIZED))
+	if (gameVar_SDLInitialized)
 		return -1;
-
-#ifdef GAME_DEBUG
-	game_shmPut(SHM_GAME_DEBUG_MODE, true);
-#endif
-
-	GAME_DEBUG_CHECK
-		cout << "[DEBUG] Initializing SDL... ";
 
 	// Initialize SDL
 	int flags = SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER;
@@ -344,27 +338,25 @@ int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowS
 
 	// Setup window
 	flags = SDL_WINDOW_RESIZABLE;
-	SDL_Window* window = SDL_CreateWindow(windowTitle.c_str(), windowStartPos.x, windowStartPos.y, windowSize.width,
+	SDL_Window* mainWindow = SDL_CreateWindow(windowTitle.c_str(), windowStartPos.x, windowStartPos.y, windowSize.width,
 	        windowSize.height, flags);
 
 	// Setup renderer
 	flags = SDL_RENDERER_ACCELERATED;
-	SDL_Renderer* mainRenderer = SDL_CreateRenderer(window, -1, flags);
+	SDL_Renderer* mainRenderer = SDL_CreateRenderer(mainWindow, -1, flags);
 
 	// Load GUI font
-	TTF_Font* newFont = TTF_OpenFont(game_getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
-	if (!newFont)
+	TTF_Font* guiFont = TTF_OpenFont(game_getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
+	if (!guiFont)
 		return -4;
 
-	// Set SHM variables
-	game_shmPut(SHM_SDL_INITIALIZED, true);
-	game_shmPut(SHM_SDL_WINDOW, window);
-	game_shmPut(SHM_SDL_MAIN_RENDERER, mainRenderer);
-	game_shmGet(SHM_WORLD_MAIN_CAMERA).size = windowSize;
-	game_shmPut(SHM_MISC_GUI_FONT, newFont);
+	// Set properties
+	gameVar_SDLInitialized = true;
+	gameVar_mainWindow = mainWindow;
+	gameVar_mainRenderer = mainRenderer;
+	gameVar_mainCamera.size = windowSize;
+	gameVar_guiFont = guiFont;
 
-	GAME_DEBUG_CHECK
-		cout << "[OK]" << endl;
 	return 0;
 }
 
@@ -377,18 +369,18 @@ void game_cleanup()
 	game_freeAssets();
 
 	// Free object rendering list
-	delete[] game_shmGet(SHM_RENDER_LAYERS);
+	delete[] gameVar_renderLayers;
 
 	// Destroy GUI font
-	TTF_CloseFont(game_shmGet(SHM_MISC_GUI_FONT));
+	TTF_CloseFont(gameVar_guiFont);
 
 	// Destroy renderer and window
-	SDL_DestroyRenderer(game_shmGet(SHM_SDL_MAIN_RENDERER));
-	SDL_DestroyWindow(game_shmGet(SHM_SDL_WINDOW));
+	SDL_DestroyRenderer(gameVar_mainRenderer);
+	SDL_DestroyWindow(gameVar_mainWindow);
 
-	game_shmPut(SHM_SDL_WINDOW, NULL);
-	game_shmPut(SHM_SDL_MAIN_RENDERER, NULL);
-	game_shmPut(SHM_SDL_INITIALIZED, false);
+	gameVar_SDLInitialized = false;
+	gameVar_mainRenderer = NULL;
+	gameVar_mainWindow = NULL;
 
 	// Quit SDL
 	SDL_Quit();

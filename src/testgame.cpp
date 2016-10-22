@@ -6,50 +6,52 @@ using namespace std;
 
 void playerFU(Game_Object& object)
 {
-	Game_Camera* mainCamera = &game_shmGet(SHM_WORLD_MAIN_CAMERA);
-	if (!mainCamera->movementDirection || game_shmGet(SHM_WORLD_KEYBOARD_MOVES_CAMERA))
+	unsigned char movementDirection = gameVar_mainCamera.movementDirection;
+	int movementSpeed = gameVar_mainCamera.movementSpeed;
+
+	if (!movementDirection || gameVar_keyboardMovesCamera)
 		return;
 
-	if (mainCamera->movementDirection & 0x1)
+	if (movementDirection & 0x1)
 	{
-		object.position.y -= mainCamera->movementSpeed;
-		if (mainCamera->movementDirection & 0x4)
+		object.position.y -= movementSpeed;
+		if (movementDirection & 0x4)
 		{
-			object.position.x -= mainCamera->movementSpeed;
+			object.position.x -= movementSpeed;
 			object.rotation = 315;
 		}
-		else if (mainCamera->movementDirection & 0x8)
+		else if (movementDirection & 0x8)
 		{
-			object.position.x += mainCamera->movementSpeed;
+			object.position.x += movementSpeed;
 			object.rotation = 45;
 		}
 		else
 			object.rotation = 0;
 	}
-	else if (mainCamera->movementDirection & 0x2)
+	else if (movementDirection & 0x2)
 	{
-		object.position.y += mainCamera->movementSpeed;
-		if (mainCamera->movementDirection & 0x4)
+		object.position.y += movementSpeed;
+		if (movementDirection & 0x4)
 		{
-			object.position.x -= mainCamera->movementSpeed;
+			object.position.x -= movementSpeed;
 			object.rotation = 225;
 		}
-		else if (mainCamera->movementDirection & 0x8)
+		else if (movementDirection & 0x8)
 		{
-			object.position.x += mainCamera->movementSpeed;
+			object.position.x += movementSpeed;
 			object.rotation = 135;
 		}
 		else
 			object.rotation = 180;
 	}
-	else if (mainCamera->movementDirection & 0x4)
+	else if (movementDirection & 0x4)
 	{
-		object.position.x -= mainCamera->movementSpeed;
+		object.position.x -= movementSpeed;
 		object.rotation = 270;
 	}
-	else if (mainCamera->movementDirection & 0x8)
+	else if (movementDirection & 0x8)
 	{
-		object.position.x += mainCamera->movementSpeed;
+		object.position.x += movementSpeed;
 		object.rotation = 90;
 	}
 }
@@ -57,8 +59,8 @@ void playerFU(Game_Object& object)
 void runTestGame()
 {
 	// Set game properties
-	game_shmPut(SHM_WORLD_KEYBOARD_MOVES_CAMERA, false);
-	game_shmPut(SHM_GAME_USE_FPS_COUNTER, true);
+	gameVar_keyboardMovesCamera = false;
+	gameVar_useFpsCounter = true;
 
 	Game_Object background(0, 0, 0, 0, false, game_combineModules(MODULE_IMAGE_BACKGROUND, MODULE_EXTRA_BOUNDS));
 	background.setTextureUpdate(imageTextureObjectTU);
@@ -73,7 +75,7 @@ void runTestGame()
 	player.setFrameUpdate(playerFU);
 	player.setTextureUpdate(imageTextureObjectTU);
 	player.imageBackgroundModule->setTexturePath(game_getAssetPath("player.png", "textures"));
-	game_shmGet(SHM_WORLD_MAIN_CAMERA).centeredObject = &player;
+	gameVar_mainCamera.centeredObject = &player;
 
 	game_addGameObject(&obstacle, GAME_LAYER_LEVEL_MID_1);
 	game_addGameObject(&player, GAME_LAYER_LEVEL_FOREGROUND);

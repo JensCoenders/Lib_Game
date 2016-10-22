@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "game_object.h"
-#include "game_shm.h"
 
 using namespace std;
 

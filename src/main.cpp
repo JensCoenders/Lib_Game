@@ -5,6 +5,13 @@ using namespace std;
 
 int initialize()
 {
+#ifdef GAME_DEBUG
+	gameVar_debugMode = true;
+#endif
+
+	GAME_DEBUG_CHECK
+		cout << "[INFO] Initializing... ";
+
 	// Initialize SDL
 	string windowTitle = "Jens Game ";
 	windowTitle += GAME_VERSION;
@@ -12,6 +19,7 @@ int initialize()
 	int returnCode = game_initialize(windowTitle, {1024, 576}, {SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED});
 	if (returnCode)
 	{
+		cout << "[CRIT]" << endl;
 		switch (returnCode)
 		{
 			case -2:
@@ -28,6 +36,8 @@ int initialize()
 		game_cleanup();
 		return returnCode;
 	}
+	else GAME_DEBUG_CHECK
+		cout << "[OK]" << endl;
 
 	return 0;
 }
@@ -49,8 +59,8 @@ bool processArguments(int argc, char** argv)
 
 		if (argument == "--assets" && (i + 1) < argc)
 		{
-			game_shmPut(SHM_ASSETS_DIR, argv[++i]);
-			cout << "[INFO] Setting assets folder to '" << game_shmGet(SHM_ASSETS_DIR) << "'" << endl;
+			gameVar_assetDir = argv[++i];
+			cout << "[INFO] Setting assets folder to '" << gameVar_assetDir << "'" << endl;
 		}
 		else if (argument == "--help")
 		{

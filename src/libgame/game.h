@@ -9,7 +9,7 @@
 #include "game_defs.h"
 #include "game_event.h"
 #include "game_object.h"
-#include "game_shm.h"
+#include "game_property.h"
 #include "game_thread.h"
 #include "game_tools.h"
 #include "game_types.h"
