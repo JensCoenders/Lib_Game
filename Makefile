@@ -1,11 +1,10 @@
 include definitions.mk
 
-# compiler flags
-INC_DIRS := $(INCDIR) $(DEPDIR)/include
-LIB_DIRS := $(CONFIG_BINDIR) $(DEPDIR)/lib
-
+# flags
 CPPFLAGS = -std=c++11 -MMD -MP -MT '$@' -MF '$(CONFIG_OUTDIR)/$*.d'
 SDL_CPPFLAGS := -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
+
+LIB_DIRS := $(CONFIG_BINDIR) $(DEPDIR)/lib
 
 ifeq ($(CONFIG),release)
 	CPPFLAGS += -O3 -Wall -Wextra
@@ -14,14 +13,13 @@ else
 	CPPFLAGS += -g3 -O0 -DGAME_DEBUG
 endif
 
+# include all dependency files
+include $(shell dir /s /b $(subst /,\\,$(CONFIG_OUTDIR)/*.d))
+
 # include makefiles
 $(call subdir_include,$(DEPDIR)/dll src)
 
-# include all dependency files
-include $(wildcard $(ROOT_OUTDIR)/**/*.d)
-
-all: jensgame | inc
-inc: $(G_INC_HEADERS) $(G_BINARY_FILES)
+all: jensgame $(G_BINARY_FILES)
 
 # rule for building libgame.dll and libgame.a
 $(LIBGAME): $(G_LIBGAME_OBJS)
@@ -42,13 +40,9 @@ $(JENSGAME): $(G_JENSGAME_OBJS) $(LIBGAME)
 $(CONFIG_OUTDIR)/%.o: $(ROOT_SRCDIR)/%.cpp
 	$(DIRECTORY_GUARD)
 	$(TARGET_GUARD)
-	+g++ -c $< -o $@ $(addprefix -I,$(INC_DIRS)) $(CPPFLAGS)
-
-$(G_LIBGAME_OBJS): | inc
-$(G_JENSGAME_OBJS): | inc
+	+g++ -c $< -o $@ $(addprefix -I,$(G_INC_DIRS)) $(CPPFLAGS)
 
 clean::
 	-if exist $(subst /,\\,$(BINDIR)) (rmdir /Q /S $(subst /,\\,$(BINDIR)))
-	-if exist $(subst /,\\,$(INCDIR)) (rmdir /Q /S $(subst /,\\,$(INCDIR)))
 	-if exist $(subst /,\\,$(LIBDIR)) (rmdir /Q /S $(subst /,\\,$(LIBDIR)))
 	-if exist $(subst /,\\,$(ROOT_OUTDIR)) (rmdir /Q /S $(subst /,\\,$(ROOT_OUTDIR)))

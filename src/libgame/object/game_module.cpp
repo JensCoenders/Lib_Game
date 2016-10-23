@@ -20,20 +20,6 @@ Game_Module::Game_Module(Game_Object* parent)
 	}
 }
 
-SDL_Surface* colorBackgroundTU(Game_Object& object, Game_RenderEquipment* equipment)
-{
-	if (!object.isModuleEnabled(MODULE_COLOR_BACKGROUND))
-		return NULL;
-
-	SDL_Color bg = object.colorBackgroundModule->backgroundColor;
-	SDL_SetRenderDrawColor(equipment->softwareRenderer, bg.r, bg.g, bg.b, bg.a);
-
-	SDL_Rect rect = {0, 0, object.size.width, object.size.height};
-	SDL_RenderFillRect(equipment->softwareRenderer, &rect);
-
-	return equipment->surface;
-}
-
 Game_ModuleColorBackground::Game_ModuleColorBackground(Game_Object* parent) :
 		Game_Module(parent)
 {
@@ -56,7 +42,7 @@ bool Game_ModuleEvent::callEventFunction(Game_ObjectEventType type, Game_ObjectE
 			break;
 		case EVENT_TYPE_CLICKED:
 			if (mouseClickedFunc)
-				mouseClickedFunc(*getParent(), (Game_MouseClickedEvent&) event);
+				mouseClickedFunc(*getParent(), event);
 			else
 				return false;
 
@@ -94,8 +80,6 @@ Game_ModuleImageBackground::Game_ModuleImageBackground(Game_Object* parent) :
 int Game_ModuleProperty::getIntProperty(string name, int defaultValue)
 {
 	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
-	// Return default value if property was not found
 	if (!currentProperty)
 		return defaultValue;
 
@@ -105,8 +89,6 @@ int Game_ModuleProperty::getIntProperty(string name, int defaultValue)
 bool Game_ModuleProperty::getBoolProperty(string name, bool defaultValue)
 {
 	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
-	// Return default value if property was not found
 	if (!currentProperty)
 		return defaultValue;
 
@@ -116,8 +98,6 @@ bool Game_ModuleProperty::getBoolProperty(string name, bool defaultValue)
 string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
 {
 	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
-
-	// Return default value if property was not found
 	if (!currentProperty)
 		return defaultValue;
 
@@ -126,11 +106,9 @@ string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
 
 LinkedListNode<Game_ObjectProperty>* Game_ModuleProperty::findPropertyByName(string name)
 {
-	// Convert name to lowercase
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name.at(i));
 
-	// Get matching property
 	LinkedListNode<Game_ObjectProperty>* currentNode = propertyList;
 	while (currentNode)
 	{
@@ -151,7 +129,7 @@ Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 
 Game_ModuleProperty::~Game_ModuleProperty()
 {
-
+	delete propertyList;
 }
 
 string Game_ModuleText::getText()
@@ -178,7 +156,7 @@ void Game_ModuleText::setTextColor(SDL_Color color)
 
 SDL_Surface* Game_ModuleText::renderText()
 {
-	if (m_text == "")
+	if (m_text.empty())
 		return NULL;
 
 	// Create text

@@ -117,21 +117,19 @@ bool game_removeGameObject(Game_Object* object)
 	LinkedListNode<Game_Object>* targetNode = NULL;
 	game_findObjectByID(object->getID(), &renderLayer, &targetNode);
 
-	if (targetNode && renderLayer)
-	{
-		if (targetNode->prevNode)
-			targetNode->prevNode->nextNode = targetNode->nextNode;
+	if (!targetNode || !renderLayer)
+		return false;
 
-		if (targetNode->nextNode)
-			targetNode->nextNode->prevNode = targetNode->prevNode;
+	if (targetNode->prevNode)
+		targetNode->prevNode->nextNode = targetNode->nextNode;
 
-		delete targetNode;
-		renderLayer->objectCount--;
+	if (targetNode->nextNode)
+		targetNode->nextNode->prevNode = targetNode->prevNode;
 
-		return true;
-	}
+	delete targetNode;
+	renderLayer->objectCount--;
 
-	return false;
+	return true;
 }
 
 Game_Point game_getObjectRenderPos(Game_Object& object)
@@ -309,6 +307,20 @@ Game_Rect game_getTextSize(string text, TTF_Font* font)
 	return dest;
 }
 
+SDL_Surface* colorBackgroundTU(Game_Object& object, Game_RenderEquipment& equipment)
+{
+	if (!object.isModuleEnabled(MODULE_COLOR_BACKGROUND))
+		return NULL;
+
+	SDL_Color bg = object.colorBackgroundModule->backgroundColor;
+	SDL_SetRenderDrawColor(equipment.softwareRenderer, bg.r, bg.g, bg.b, bg.a);
+
+	SDL_Rect rect = {0, 0, object.size.width, object.size.height};
+	SDL_RenderFillRect(equipment.softwareRenderer, &rect);
+
+	return equipment.surface;
+}
+
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equipment)
 {
 	if (!object.isModuleEnabled(MODULE_IMAGE_BACKGROUND))
@@ -328,7 +340,7 @@ SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equ
 	return game_getAsset(texturePath);
 }
 
-SDL_Surface* textObjectTextureUpdate(Game_Object& object, Game_RenderEquipment& equipment)
+SDL_Surface* textObjectTU(Game_Object& object, Game_RenderEquipment& equipment)
 {
 	if (!object.isModuleEnabled(MODULE_TEXT))
 		return NULL;

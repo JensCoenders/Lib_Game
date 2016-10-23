@@ -1,2 +1,2 @@
-INC_HEADERS := game_object.h
+INC_DIRS := object
 LIBGAME_OBJS := game_module.o game_object.o

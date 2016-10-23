@@ -214,11 +214,9 @@ typedef struct Game_RenderLayer
 
 } Game_RenderLayer;
 
-template <typename T>
+template<typename T>
 void Game_ModuleProperty::setProperty(std::string name, T value)
 {
-	for (unsigned int i = 0; i < name.length(); i++)
-		name[i] = tolower(name.at(i));
 
 	LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
 	if (!propertyNode)

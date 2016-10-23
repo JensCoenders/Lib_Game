@@ -4,8 +4,6 @@
 
 # general directories
 BINDIR := bin
-INCDIR := include
-LIBDIR := lib
 SRCDIR :=
 OUTDIR :=
 ROOT_SRCDIR := src
@@ -21,7 +19,7 @@ CONFIG_OUTDIR := $(ROOT_OUTDIR)/$(CONFIG)
 
 # global variables
 G_BINARY_FILES :=
-G_INC_HEADERS :=
+G_INC_DIRS := $(DEPDIR)/include 
 G_LIBGAME_OBJS :=
 G_JENSGAME_OBJS :=
 
@@ -40,7 +38,7 @@ $(1) += $$(addprefix $(2)/,$(4))
 $(2)/$(4): $(3)/$(4)
 	$$(DIRECTORY_GUARD)
 	$$(TARGET_GUARD)
-	+mklink /H $$(subst /,\\,$$@) $$(subst /,\\,$$<) >NUL
+	+copy $$(subst /,\\,$$<) $$(dir $$(subst /,\\,$$@)) >NUL
 endef
 
 # _subdir_include macro: $(1) = new directory (subdirectory)
@@ -59,7 +57,7 @@ endif
 
 # reset local variables
 BINARY_FILES :=
-INC_HEADERS :=
+INC_DIRS :=
 LIBGAME_OBJS :=
 JENSGAME_OBJS :=
 SUBDIRS :=
@@ -69,7 +67,7 @@ include $$(SRCDIR)/Makefile
 
 # process local variables
 $$(foreach file,$$(BINARY_FILES),$$(eval $$(call _copy_file,G_BINARY_FILES,$$(CONFIG_BINDIR),$$(SRCDIR),$$(file))))
-$$(foreach header,$$(INC_HEADERS),$$(eval $$(call _copy_file,G_INC_HEADERS,$$(INCDIR),$$(SRCDIR),$$(header))))
+$$(foreach directory,$$(INC_DIRS),$$(eval G_INC_DIRS += $$(PSRCDIR-$(1))/$$(directory)))
 $$(foreach obj,$$(LIBGAME_OBJS),$$(eval G_LIBGAME_OBJS += $$(OUTDIR)/$$(obj)))
 $$(foreach obj,$$(JENSGAME_OBJS),$$(eval G_JENSGAME_OBJS += $$(OUTDIR)/$$(obj)))
 

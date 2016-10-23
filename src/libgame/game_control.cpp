@@ -63,7 +63,7 @@ void game_renderThread()
 			cout << "[DEBUG] Setting up FPS object... ";
 
 		Game_Object* fpsObject = new Game_Object(5, 0, 0, 0, true, game_combineModules(MODULE_TEXT, MODULE_PROPERTY));
-		fpsObject->setTextureUpdate(textObjectTextureUpdate);
+		fpsObject->setTextureUpdate(textObjectTU);
 		fpsObject->textModule->setText("FPS: 0");
 		fpsObject->textModule->setTextColor({255, 255, 0, 255});
 		fpsObject->propertyModule->setProperty("LIBGAME_CREATED", true);

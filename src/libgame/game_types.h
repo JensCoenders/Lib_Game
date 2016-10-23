@@ -141,11 +141,7 @@ LinkedListNode<T>::LinkedListNode()
 template<typename T>
 LinkedListNode<T>::~LinkedListNode()
 {
-	if (prevNode)
-		delete prevNode;
-
 	if (nextNode)
 		delete nextNode;
 }
-
 #endif

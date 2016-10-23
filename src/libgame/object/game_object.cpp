@@ -13,44 +13,44 @@ void Game_Object::setModuleEnabled(Game_ModuleType module, bool enabled)
 {
 	if (module & MODULE_COLOR_BACKGROUND)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_COLOR_BACKGROUND))
 			colorBackgroundModule = new Game_ModuleColorBackground(this);
-		else
+		else if (isModuleEnabled(MODULE_COLOR_BACKGROUND))
 			delete colorBackgroundModule;
 	}
 	if (module & MODULE_EVENT)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_EVENT))
 			eventModule = new Game_ModuleEvent(this);
-		else
+		else if (isModuleEnabled(MODULE_EVENT))
 			delete eventModule;
 	}
 	if (module & MODULE_IMAGE_BACKGROUND)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_IMAGE_BACKGROUND))
 			imageBackgroundModule = new Game_ModuleImageBackground(this);
-		else
+		else if (isModuleEnabled(MODULE_IMAGE_BACKGROUND))
 			delete imageBackgroundModule;
 	}
 	if (module & MODULE_PROPERTY)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_PROPERTY))
 			propertyModule = new Game_ModuleProperty(this);
-		else
+		else if (isModuleEnabled(MODULE_PROPERTY))
 			delete propertyModule;
 	}
 	if (module & MODULE_TEXT)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_TEXT))
 			textModule = new Game_ModuleText(this);
-		else
+		else if (isModuleEnabled(MODULE_TEXT))
 			delete textModule;
 	}
 	if (module & MODULE_EXTRA_BOUNDS)
 	{
-		if (enabled)
+		if (enabled && !isModuleEnabled(MODULE_EXTRA_BOUNDS))
 			extraBoundsModule = new Game_ModuleExtraBounds(this);
-		else
+		else if (isModuleEnabled(MODULE_EXTRA_BOUNDS))
 			delete extraBoundsModule;
 	}
 
