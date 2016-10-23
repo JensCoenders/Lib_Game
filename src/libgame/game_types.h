@@ -24,7 +24,7 @@ typedef struct Game_Rect
 
 } Game_Rect;
 
-template<typename T>
+template <typename T>
 struct LinkedListNode
 {
 	public:
@@ -121,6 +121,7 @@ typedef struct Game_ObjectProperty
 
 		Game_ObjectProperty();
 		~Game_ObjectProperty();
+
 	private:
 		int m_intValue;
 		bool m_boolValue;
@@ -130,7 +131,7 @@ typedef struct Game_ObjectProperty
 
 /* Function definitions */
 
-template<typename T>
+template <typename T>
 LinkedListNode<T>::LinkedListNode()
 {
 	value = NULL;
@@ -138,7 +139,7 @@ LinkedListNode<T>::LinkedListNode()
 	nextNode = NULL;
 }
 
-template<typename T>
+template <typename T>
 LinkedListNode<T>::~LinkedListNode()
 {
 	if (nextNode)

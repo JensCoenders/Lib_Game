@@ -10,7 +10,7 @@ int initialize()
 #endif
 
 	GAME_DEBUG_CHECK
-		cout << "[INFO] Initializing... ";
+		cout << "[DEBUG] Initializing... ";
 
 	// Initialize SDL
 	string windowTitle = "Jens Game ";
@@ -19,17 +19,19 @@ int initialize()
 	int returnCode = game_initialize(windowTitle, {1024, 576}, {SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED});
 	if (returnCode)
 	{
-		cout << "[CRIT]" << endl;
+		GAME_DEBUG_CHECK
+			cout << "[CRIT]" << endl;
+
 		switch (returnCode)
 		{
 			case -2:
-				cout << "[CRIT] Failed to initialize SDL! Error: " << SDL_GetError() << endl;
+				cout << "[ERROR] Failed to initialize SDL! Error: " << SDL_GetError() << endl;
 				break;
 			case -3:
-				cout << "[CRIT] Failed to initialize SDL_image! Error: " << IMG_GetError() << endl;
+				cout << "[ERROR] Failed to initialize SDL_image! Error: " << IMG_GetError() << endl;
 				break;
 			case -4:
-				cout << "[CRIT] Failed to initialize SDL_ttf! Error: " << TTF_GetError() << endl;
+				cout << "[ERROR] Failed to initialize SDL_ttf! Error: " << TTF_GetError() << endl;
 				break;
 		}
 
@@ -60,7 +62,9 @@ bool processArguments(int argc, char** argv)
 		if (argument == "--assets" && (i + 1) < argc)
 		{
 			gameVar_assetDir = argv[++i];
-			cout << "[INFO] Setting assets folder to '" << gameVar_assetDir << "'" << endl;
+
+			GAME_DEBUG_CHECK
+				cout << "[DEBUG] Setting assets folder to '" << gameVar_assetDir << "'" << endl;
 		}
 		else if (argument == "--help")
 		{
@@ -91,11 +95,11 @@ int main(int argc, char** argv)
 
 	// Run game
 	runTestGame();
-	cout << "[INFO] Stopped main thread" << endl;
 
-	// Cleanup
+	// Clean up
 	game_cleanup();
 
-	cout << "[INFO] Cleanup complete" << endl;
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Cleanup complete" << endl;
 	return 0;
 }

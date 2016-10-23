@@ -50,7 +50,7 @@ bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childP
 bool game_isRenderPosInside(Game_Object& parent, Game_Object& child, bool forceFullyInside)
 {
 	return game_isInside(game_getObjectRenderPos(parent), game_getObjectRenderSize(parent),
-			game_getObjectRenderPos(child), game_getObjectRenderSize(child), forceFullyInside);
+		game_getObjectRenderPos(child), game_getObjectRenderSize(child), forceFullyInside);
 }
 
 bool game_loadAsset(string assetPath)

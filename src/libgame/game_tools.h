@@ -23,8 +23,8 @@ bool game_removeGameObject(Game_Object* object);
 Game_Point game_getObjectRenderPos(Game_Object& object);
 Game_Rect game_getObjectRenderSize(Game_Object& object);
 
-Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer = NULL, LinkedListNode<
-        Game_Object>** outputNode = NULL);
+Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer = NULL,
+		LinkedListNode<Game_Object>** outputNode = NULL);
 
 /* Rendering */
 Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight);
@@ -37,40 +37,40 @@ SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equ
 SDL_Surface* textObjectTU(Game_Object& object, Game_RenderEquipment& equipment);
 
 /* Template combine functions */
-template<typename First>
+template <typename First>
 std::string combineStringPath(First& firstString = "")
 {
 	return firstString;
 }
 
-template<typename First, typename ... Rest>
+template <typename First, typename ... Rest>
 std::string combineStringPath(First firstString, Rest&... rest)
 {
 	return std::string(firstString) + "\\" + combineStringPath(rest...);
 }
 
-template<typename First, typename ... Rest>
+template <typename First, typename ... Rest>
 std::string game_getAssetPath(First name, Rest&... subDirs)
 {
 	return gameVar_assetDir + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
 }
 
-template<typename First>
+template <typename First>
 int combineModuleTypes(First firstModule = 0)
 {
 	return firstModule;
 }
 
-template<typename First, typename ... Rest>
-int combineModuleTypes(First firstModule, Rest... restModules)
+template <typename First, typename ... Rest>
+int combineModuleTypes(First firstModule, Rest ... restModules)
 {
-	return (int)firstModule | combineModuleTypes(restModules...);
+	return (int) firstModule | combineModuleTypes(restModules...);
 }
 
-template<typename First, typename ... Rest>
-Game_ModuleType game_combineModules(First firstModule, Rest... restModules)
+template <typename First, typename ... Rest>
+Game_ModuleType game_combineModules(First firstModule, Rest ... restModules)
 {
-	return (Game_ModuleType) ((int)firstModule | combineModuleTypes(restModules...));
+	return (Game_ModuleType) ((int) firstModule | combineModuleTypes(restModules...));
 }
 
 #endif

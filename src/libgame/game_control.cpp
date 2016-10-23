@@ -21,7 +21,9 @@ void game_runMainLoop()
 	// Start render thread
 	game_startRenderThread();
 
-	cout << "[INFO] Started main thread" << endl;
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Started GUI thread" << endl;
+
 	while (gameVar_isRunning)
 	{
 		// Wait and poll events
@@ -47,12 +49,13 @@ void game_runMainLoop()
 
 	// Join render thread
 	game_stopRenderThread(true);
+
+	GAME_DEBUG_CHECK
+		cout << "[DEBUG] Stopped GUI thread" << endl;
 }
 
 void game_renderThread()
 {
-	cout << "[INFO] Started render thread" << endl;
-
 	// Setup renderer
 	SDL_SetRenderDrawColor(gameVar_mainRenderer, 255, 255, 255, 0);
 
@@ -65,7 +68,7 @@ void game_renderThread()
 		Game_Object* fpsObject = new Game_Object(5, 0, 0, 0, true, game_combineModules(MODULE_TEXT, MODULE_PROPERTY));
 		fpsObject->setTextureUpdate(textObjectTU);
 		fpsObject->textModule->setText("FPS: 0");
-		fpsObject->textModule->setTextColor({255, 255, 0, 255});
+		fpsObject->textModule->setTextColor( {255, 255, 0, 255});
 		fpsObject->propertyModule->setProperty("LIBGAME_CREATED", true);
 
 		gameVar_fpsObject = fpsObject;
@@ -179,10 +182,10 @@ void game_renderThread()
 					renderRect.w = renderSize.width;
 					renderRect.h = renderSize.height;
 
-					if (currentObject->isStatic || game_isInside({0, 0}, gameVar_mainCamera.size, renderPos, renderSize, false))
+					if (currentObject->isStatic || game_isInside( {0, 0}, gameVar_mainCamera.size, renderPos, renderSize, false))
 					{
 						SDL_RenderCopyEx(gameVar_mainRenderer, currentObject->lastRenderedTexture, NULL, &renderRect,
-						        currentObject->rotation, NULL, SDL_FLIP_NONE);
+							currentObject->rotation, NULL, SDL_FLIP_NONE);
 
 						currentObject->isOutsideCameraBounds = false;
 					}
@@ -200,10 +203,10 @@ void game_renderThread()
 			SDL_Rect indicRectCamPos;
 			if (!gameVar_keyboardMovesCamera && gameVar_mainCamera.centeredObject)
 			{
-				indicRectCamPos.x = (gameVar_mainCamera.size.width - gameVar_mainCamera.centeredObject->size.width) / 2
-						- gameVar_mainCamera.centeredObject->position.x - 5;
-				indicRectCamPos.y = (gameVar_mainCamera.size.height - gameVar_mainCamera.centeredObject->size.height) / 2
-						- gameVar_mainCamera.centeredObject->position.y - 5;
+				indicRectCamPos.x = (gameVar_mainCamera.size.width - gameVar_mainCamera.centeredObject->size.width) / 2 -
+						gameVar_mainCamera.centeredObject->position.x - 5;
+				indicRectCamPos.y = (gameVar_mainCamera.size.height - gameVar_mainCamera.centeredObject->size.height) / 2 -
+						gameVar_mainCamera.centeredObject->position.y - 5;
 			}
 			else
 			{
@@ -226,8 +229,8 @@ void game_renderThread()
 			SDL_Texture* textTexture = SDL_CreateTextureFromSurface(gameVar_mainRenderer, textSurface);
 
 			SDL_Rect textRect;
-			textRect.x = (gameVar_mainCamera.position.x + 40 < 0? gameVar_mainCamera.position.x * -1 : 43) - 40;
-			textRect.y = (gameVar_mainCamera.position.y + 35 < 0? gameVar_mainCamera.position.y * -1 : 38) - 35;
+			textRect.x = (gameVar_mainCamera.position.x + 40 < 0 ? gameVar_mainCamera.position.x * -1 : 43) - 40;
+			textRect.y = (gameVar_mainCamera.position.y + 35 < 0 ? gameVar_mainCamera.position.y * -1 : 38) - 35;
 			textRect.w = textSurface->w;
 			textRect.h = textSurface->h;
 
@@ -271,8 +274,8 @@ void game_renderThread()
 	}
 
 	// Delete FPS object if it wasn't manually created
-	if (gameVar_fpsObject && gameVar_fpsObject->isModuleEnabled(MODULE_PROPERTY)
-	        && gameVar_fpsObject->propertyModule->getBoolProperty("LIBGAME_CREATED", false))
+	if (gameVar_fpsObject && gameVar_fpsObject->isModuleEnabled(MODULE_PROPERTY) &&
+			gameVar_fpsObject->propertyModule->getBoolProperty("LIBGAME_CREATED", false))
 	{
 		delete gameVar_fpsObject;
 
@@ -282,8 +285,7 @@ void game_renderThread()
 
 	GAME_DEBUG_CHECK
 		cout << "[DEBUG] Stopped render thread (thread with ID " << g_renderThreadID << ')' << endl;
-	else
-		cout << "[INFO] Stopped render thread" << endl;
+
 }
 
 bool game_startRenderThread()
@@ -292,7 +294,7 @@ bool game_startRenderThread()
 
 	if ((g_renderThreadID = game_startThread(game_renderThread)))
 	{
-		cout << "[ERR] Couldn't start render thread! Error code: " << g_renderThreadID << endl;
+		cout << "[ERROR] Couldn't start render thread! Error code: " << g_renderThreadID << endl;
 		return false;
 	}
 	else
@@ -338,8 +340,8 @@ int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowS
 
 	// Setup window
 	flags = SDL_WINDOW_RESIZABLE;
-	SDL_Window* mainWindow = SDL_CreateWindow(windowTitle.c_str(), windowStartPos.x, windowStartPos.y, windowSize.width,
-	        windowSize.height, flags);
+	SDL_Window* mainWindow = SDL_CreateWindow(windowTitle.c_str(), windowStartPos.x, windowStartPos.y,
+		windowSize.width, windowSize.height, flags);
 
 	// Setup renderer
 	flags = SDL_RENDERER_ACCELERATED;

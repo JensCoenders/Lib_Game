@@ -17,7 +17,7 @@ void threadHandler(void* pars)
 	delete threadPars;
 }
 
-int game_startThread(GAME_THREAD_FUNC function)
+int game_startThread(Game_ThreadRunFunc function)
 {
 	// Initialize list if not initialized
 	static bool initialized = false;
@@ -51,7 +51,7 @@ int game_startThread(GAME_THREAD_FUNC function)
 	pars->threadFunction = function;
 
 	// Start thread
-	g_threads[newThreadID] = (HANDLE)_beginthread(threadHandler, 0, pars);
+	g_threads[newThreadID] = (HANDLE) _beginthread(threadHandler, 0, pars);
 
 	// Check if thread creation succeeded
 	if (g_threads[newThreadID] == NULL)

@@ -24,6 +24,12 @@ Game_ObjectEvent::Game_ObjectEvent(SDL_Event* event)
 	this->originalEvent = event;
 }
 
+Game_KeyTypedEvent::Game_KeyTypedEvent(SDL_Event* event) :
+		Game_ObjectEvent(event)
+{
+
+}
+
 Game_MouseClickedEvent::Game_MouseClickedEvent(SDL_Event* event) :
 		Game_ObjectEvent(event)
 {

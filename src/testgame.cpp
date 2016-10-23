@@ -62,6 +62,7 @@ void runTestGame()
 	gameVar_keyboardMovesCamera = false;
 	gameVar_useFpsCounter = true;
 
+	// Create objects
 	Game_Object background(0, 0, 0, 0, false, game_combineModules(MODULE_IMAGE_BACKGROUND, MODULE_EXTRA_BOUNDS));
 	background.setTextureUpdate(imageTextureObjectTU);
 	background.imageBackgroundModule->setTexturePath(game_getAssetPath("background_grass.png", "textures"));
@@ -84,7 +85,6 @@ void runTestGame()
 	GAME_DEBUG_CHECK
 		cout << "[DEBUG] Created game objects" << endl;
 
-	// Main loop
-	cout << "[INFO] Successfully initialized game" << endl;
+	// Run main loop
 	game_runMainLoop();
 }

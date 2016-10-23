@@ -31,6 +31,7 @@ typedef struct Game_Module
 	public:
 		Game_Object* getParent();
 		Game_Module(Game_Object* parent);
+
 	private:
 		Game_Object* m_parent;
 
@@ -62,6 +63,7 @@ typedef struct Game_ModuleImageBackground : public Game_Module
 		void setTexturePath(std::string texturePath);
 
 		Game_ModuleImageBackground(Game_Object* parent);
+
 	private:
 		std::string m_texturePath;
 
@@ -76,11 +78,12 @@ typedef struct Game_ModuleProperty : public Game_Module
 		bool getBoolProperty(std::string name, bool defaultValue);
 		std::string getStringProperty(std::string name, std::string defaultValue);
 
-		template<typename T>
+		template <typename T>
 		void setProperty(std::string name, T value);
 
 		Game_ModuleProperty(Game_Object* parent);
 		~Game_ModuleProperty();
+
 	private:
 		LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
 
@@ -102,6 +105,7 @@ typedef struct Game_ModuleText : public Game_Module
 		void setTextColor(SDL_Color color);
 
 		Game_ModuleText(Game_Object* parent);
+
 	private:
 		std::string m_text;
 		SDL_Color m_textColor;
@@ -173,6 +177,7 @@ class Game_Object
 		Game_Object(int x, int y, int w, int h, Game_ModuleType enabledModules);
 		Game_Object(int x, int y, int w, int h, bool isStatic, Game_ModuleType enabledModules);
 		virtual ~Game_Object();
+
 	protected:
 		// Texture
 		bool m_needsTextureUpdate;
@@ -214,7 +219,7 @@ typedef struct Game_RenderLayer
 
 } Game_RenderLayer;
 
-template<typename T>
+template <typename T>
 void Game_ModuleProperty::setProperty(std::string name, T value)
 {
 
