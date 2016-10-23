@@ -44,5 +44,4 @@ $(CONFIG_OUTDIR)/%.o: $(ROOT_SRCDIR)/%.cpp
 
 clean::
 	-if exist $(subst /,\\,$(BINDIR)) (rmdir /Q /S $(subst /,\\,$(BINDIR)))
-	-if exist $(subst /,\\,$(LIBDIR)) (rmdir /Q /S $(subst /,\\,$(LIBDIR)))
 	-if exist $(subst /,\\,$(ROOT_OUTDIR)) (rmdir /Q /S $(subst /,\\,$(ROOT_OUTDIR)))
