@@ -348,7 +348,7 @@ int game_initialize(string windowTitle, Game_Rect windowSize, Game_Point windowS
 	SDL_Renderer* mainRenderer = SDL_CreateRenderer(mainWindow, -1, flags);
 
 	// Load GUI font
-	TTF_Font* guiFont = TTF_OpenFont(game_getAssetPath("FantasqueSansMono.ttf", "fonts").c_str(), 25);
+	TTF_Font* guiFont = TTF_OpenFont(game_getAssetPath("fonts", "FantasqueSansMono.ttf").c_str(), 25);
 	if (!guiFont)
 		return -4;
 

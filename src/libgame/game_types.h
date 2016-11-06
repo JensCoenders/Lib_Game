@@ -55,6 +55,18 @@ typedef struct Game_ObjectEvent
 
 } Game_ObjectEvent;
 
+typedef struct Game_KeyTypedEvent : public Game_ObjectEvent
+{
+	public:
+		SDL_Scancode scancode;
+		bool pressed;
+		unsigned int keyMod;
+		int repeat;
+
+		Game_KeyTypedEvent(SDL_Event* event);
+
+} Game_KeyTypedEvent;
+
 typedef struct Game_MouseClickedEvent : public Game_ObjectEvent
 {
 	public:

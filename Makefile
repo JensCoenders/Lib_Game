@@ -14,7 +14,7 @@ else
 endif
 
 # include all dependency files
-include $(shell dir /s /b $(subst /,\\,$(CONFIG_OUTDIR)/*.d))
+include $(shell if exist $(CONFIG_OUTDIR) (dir /s /b $(subst /,\\,$(CONFIG_OUTDIR)/*.d)))
 
 # include makefiles
 $(call subdir_include,$(DEPDIR)/dll src)

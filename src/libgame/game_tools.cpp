@@ -57,7 +57,12 @@ bool game_loadAsset(string assetPath)
 {
 	SDL_Surface* loadedSurface = IMG_Load(assetPath.c_str());
 	if (!loadedSurface)
+	{
+		GAME_DEBUG_CHECK
+			cout << "[WARNING] Cannot load '" << assetPath << "'!" << endl;
+
 		return false;
+	}
 
 	LinkedListNode<Game_Asset>* newNode = new LinkedListNode<Game_Asset>();
 	newNode->value = new Game_Asset(assetPath, loadedSurface);
@@ -66,7 +71,7 @@ bool game_loadAsset(string assetPath)
 	return true;
 }
 
-SDL_Surface* game_getAsset(string assetPath)
+SDL_Surface* game_getAsset(string assetPath, bool loadAsset)
 {
 	LinkedListNode<Game_Asset>* currentNode = gameVar_loadedAssets;
 	while (currentNode)
@@ -77,7 +82,10 @@ SDL_Surface* game_getAsset(string assetPath)
 		currentNode = currentNode->nextNode;
 	}
 
-	return NULL;
+	if (!loadAsset || !game_loadAsset(assetPath))
+		return NULL;
+
+	return game_getAsset(assetPath);
 }
 
 void game_freeAssets()
@@ -333,7 +341,7 @@ SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equ
 
 	if (!game_loadAsset(texturePath))
 	{
-		cout << "[ERR] Couldn't load file '" << texturePath << "': " << IMG_GetError() << endl;
+		cout << "[ERROR] Couldn't load file '" << texturePath << "': " << IMG_GetError() << endl;
 		return NULL;
 	}
 

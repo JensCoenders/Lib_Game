@@ -222,10 +222,12 @@ typedef struct Game_RenderLayer
 template <typename T>
 void Game_ModuleProperty::setProperty(std::string name, T value)
 {
-
 	LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
 	if (!propertyNode)
 	{
+		for (unsigned int i = 0; i < name.length(); i++)
+			name[i] = tolower(name[i]);
+
 		propertyNode = new LinkedListNode<Game_ObjectProperty>();
 		propertyNode->value = new Game_ObjectProperty();
 		propertyNode->value->name = name;

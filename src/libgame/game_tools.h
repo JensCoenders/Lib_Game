@@ -13,7 +13,7 @@ bool game_isRenderPosInside(Game_Object& parent, Game_Object& child, bool forceF
 
 /* Assets */
 bool game_loadAsset(std::string assetPath);
-SDL_Surface* game_getAsset(std::string assetName);
+SDL_Surface* game_getAsset(std::string assetPath, bool loadAsset = false);
 void game_freeAssets();
 
 /* Object */
@@ -52,7 +52,7 @@ std::string combineStringPath(First firstString, Rest&... rest)
 template <typename First, typename ... Rest>
 std::string game_getAssetPath(First name, Rest&... subDirs)
 {
-	return gameVar_assetDir + "\\" + combineStringPath(subDirs...) + "\\" + std::string(name);
+	return gameVar_assetDir + "\\" + std::string(name) + "\\" + combineStringPath(subDirs...);
 }
 
 template <typename First>

@@ -107,7 +107,7 @@ string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
 LinkedListNode<Game_ObjectProperty>* Game_ModuleProperty::findPropertyByName(string name)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
-		name[i] = tolower(name.at(i));
+		name[i] = tolower(name[i]);
 
 	LinkedListNode<Game_ObjectProperty>* currentNode = propertyList;
 	while (currentNode)

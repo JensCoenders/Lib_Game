@@ -175,8 +175,13 @@ void game_processKeyboardEvent(SDL_Event& event)
 	// Forward event to input object
 	if (gameVar_keyboardInputObject && gameVar_keyboardInputObject->isModuleEnabled(MODULE_EVENT))
 	{
-		Game_ObjectEvent objectEvent(&event);
-		gameVar_keyboardInputObject->eventModule->callEventFunction(EVENT_TYPE_TYPED, objectEvent);
+		Game_KeyTypedEvent keyTypedEvent(&event);
+		keyTypedEvent.pressed = event.key.state == SDL_PRESSED;
+		keyTypedEvent.scancode = event.key.keysym.scancode;
+		keyTypedEvent.keyMod = event.key.keysym.mod;
+		keyTypedEvent.repeat = event.key.repeat;
+
+		gameVar_keyboardInputObject->eventModule->callEventFunction(EVENT_TYPE_TYPED, keyTypedEvent);
 	}
 }
 
