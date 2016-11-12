@@ -6,6 +6,7 @@
 #include "game_defs.h"
 #include "game_object.h"
 #include "game_types.h"
+#include "game_utils.hpp"
 
 extern bool gameVar_isRunning;
 extern int gameVar_targetFps;
@@ -13,7 +14,7 @@ extern bool gameVar_useFpsCounter;
 extern bool gameVar_debugMode;
 
 extern std::string gameVar_assetDir;
-extern LinkedListNode<Game_Asset>* gameVar_loadedAssets;
+extern LinkedList<Game_Asset, std::string> gameVar_loadedAssets;
 
 extern Game_Camera gameVar_mainCamera;
 extern bool gameVar_keyboardMovesCamera;

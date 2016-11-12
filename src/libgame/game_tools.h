@@ -3,9 +3,9 @@
 
 #include <string>
 #include <SDL2/SDL_ttf.h>
+#include "game_global.h"
 
 #include "game_object.h"
-#include "game_property.h"
 
 /* General */
 bool game_isInside(Game_Point parentPos, Game_Rect parentSize, Game_Point childPos, Game_Rect childSize, bool forcedInside);
@@ -36,35 +36,12 @@ SDL_Surface* colorBackgroundTU(Game_Object& object, Game_RenderEquipment& equipm
 SDL_Surface* imageTextureObjectTU(Game_Object& object, Game_RenderEquipment& equipment);
 SDL_Surface* textObjectTU(Game_Object& object, Game_RenderEquipment& equipment);
 
-/* Template combine functions */
-template <typename First>
-std::string combineStringPath(First& firstString = "")
-{
-	return firstString;
-}
-
-template <typename First, typename ... Rest>
-std::string combineStringPath(First firstString, Rest&... rest)
-{
-	return std::string(firstString) + "\\" + combineStringPath(rest...);
-}
+/* Function definitions */
 
 template <typename First, typename ... Rest>
 std::string game_getAssetPath(First name, Rest&... subDirs)
 {
 	return gameVar_assetDir + "\\" + std::string(name) + "\\" + combineStringPath(subDirs...);
-}
-
-template <typename First>
-int combineModuleTypes(First firstModule = 0)
-{
-	return firstModule;
-}
-
-template <typename First, typename ... Rest>
-int combineModuleTypes(First firstModule, Rest ... restModules)
-{
-	return (int) firstModule | combineModuleTypes(restModules...);
 }
 
 template <typename First, typename ... Rest>

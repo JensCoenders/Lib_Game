@@ -8,7 +8,7 @@
 #include "game_control.h"
 #include "game_defs.h"
 #include "game_event.h"
-#include "game_property.h"
+#include "game_global.h"
 #include "game_thread.h"
 #include "game_tools.h"
 
@@ -54,6 +54,11 @@ void game_runMainLoop()
 		cout << "[DEBUG] Stopped GUI thread" << endl;
 }
 
+void game_fpsObjectFrameUpdate(Game_Object& object)
+{
+	object.isVisible = gameVar_useFpsCounter;
+}
+
 void game_renderThread()
 {
 	// Setup renderer
@@ -67,6 +72,7 @@ void game_renderThread()
 
 		Game_Object* fpsObject = new Game_Object(5, 0, 0, 0, true, game_combineModules(MODULE_TEXT, MODULE_PROPERTY));
 		fpsObject->setTextureUpdate(textObjectTU);
+		fpsObject->setFrameUpdate(game_fpsObjectFrameUpdate);
 		fpsObject->textModule->setText("FPS: 0");
 		fpsObject->textModule->setTextColor( {255, 255, 0, 255});
 		fpsObject->propertyModule->setProperty("LIBGAME_CREATED", true);

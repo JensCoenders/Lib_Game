@@ -4,7 +4,7 @@
 #include "game_defs.h"
 #include "game_tools.h"
 
-#include "game_property.h"
+#include "game_global.h"
 #include "game_types.h"
 
 using namespace std;
@@ -64,23 +64,27 @@ bool game_loadAsset(string assetPath)
 		return false;
 	}
 
-	LinkedListNode<Game_Asset>* newNode = new LinkedListNode<Game_Asset>();
-	newNode->value = new Game_Asset(assetPath, loadedSurface);
-	newNode->nextNode = gameVar_loadedAssets;
-	gameVar_loadedAssets = newNode;
+	Game_Asset* newAsset = new Game_Asset(assetPath, loadedSurface);
+	gameVar_loadedAssets.add(newAsset);
 	return true;
+}
+
+bool game_assetSearchFunc(Game_Asset* currentAsset, string assetPath)
+{
+	for (unsigned int i = 0; i < assetPath.length(); i++)
+		assetPath[i] = tolower(assetPath[i]);
+
+	return currentAsset->assetPath == assetPath;
 }
 
 SDL_Surface* game_getAsset(string assetPath, bool loadAsset)
 {
-	LinkedListNode<Game_Asset>* currentNode = gameVar_loadedAssets;
-	while (currentNode)
-	{
-		if (currentNode->value->assetPath == assetPath)
-			return currentNode->value->loadedSurface;
+	if (!gameVar_loadedAssets.hasSearchFunc())
+		gameVar_loadedAssets.setSearchFunc(game_assetSearchFunc);
 
-		currentNode = currentNode->nextNode;
-	}
+	Game_Asset* targetAsset = gameVar_loadedAssets.search(assetPath);
+	if (targetAsset)
+		return targetAsset->loadedSurface;
 
 	if (!loadAsset || !game_loadAsset(assetPath))
 		return NULL;
@@ -93,8 +97,7 @@ void game_freeAssets()
 	GAME_DEBUG_CHECK
 		cout << "[DEBUG] Freeing assets... ";
 
-	if (gameVar_loadedAssets)
-		delete gameVar_loadedAssets;
+	gameVar_loadedAssets.removeAll();
 
 	GAME_DEBUG_CHECK
 		cout << "[OK]" << endl;

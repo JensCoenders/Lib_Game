@@ -3,6 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include "game_types.h"
+#include "game_utils.hpp"
 
 /* Function types */
 
@@ -72,7 +73,7 @@ typedef struct Game_ModuleImageBackground : public Game_Module
 typedef struct Game_ModuleProperty : public Game_Module
 {
 	public:
-		LinkedListNode<Game_ObjectProperty>* propertyList;
+		LinkedList<Game_ObjectProperty, std::string> propertyList;
 
 		int getIntProperty(std::string name, int defaultValue);
 		bool getBoolProperty(std::string name, bool defaultValue);
@@ -83,9 +84,6 @@ typedef struct Game_ModuleProperty : public Game_Module
 
 		Game_ModuleProperty(Game_Object* parent);
 		~Game_ModuleProperty();
-
-	private:
-		LinkedListNode<Game_ObjectProperty>* findPropertyByName(std::string name);
 
 } Game_ModuleProperty;
 
@@ -111,6 +109,20 @@ typedef struct Game_ModuleText : public Game_Module
 		SDL_Color m_textColor;
 
 } Game_ModuleText;
+
+typedef enum Game_ObjectFloatMode
+{
+	FLOAT_LEFT_TOP,
+	FLOAT_LEFT_CENTER,
+	FLOAT_LEFT_BOTTOM,
+	FLOAT_CENTER_TOP,
+	FLOAT_CENTER,
+	FLOAT_CENTER_BOTTOM,
+	FLOAT_RIGHT_TOP,
+	FLOAT_RIGHT_CENTER,
+	FLOAT_RIGHT_BOTTOM
+
+} Game_ObjectFloatMode;
 
 typedef struct Game_ModuleExtraBounds : public Game_Module
 {
@@ -150,9 +162,6 @@ class Game_Object
 		void setModuleEnabled(Game_ModuleType module, bool enabled);
 
 		// Update
-		SDL_Texture* lastRenderedTexture;
-		bool isOutsideCameraBounds;
-
 		void runFrameUpdate();
 		void setFrameUpdate(Game_ObjectFUFunc function);
 		SDL_Surface* runTextureUpdate(Game_RenderEquipment& equipment);
@@ -168,6 +177,9 @@ class Game_Object
 		double rotation;
 
 		// Misc
+		SDL_Texture* lastRenderedTexture;
+		bool isOutsideCameraBounds;
+
 		bool isStatic;
 		bool isVisible;
 		unsigned int getID();
@@ -219,24 +231,22 @@ typedef struct Game_RenderLayer
 
 } Game_RenderLayer;
 
+/* Function definitions */
+
 template <typename T>
 void Game_ModuleProperty::setProperty(std::string name, T value)
 {
-	LinkedListNode<Game_ObjectProperty>* propertyNode = findPropertyByName(name);
-	if (!propertyNode)
+	Game_ObjectProperty* property = propertyList.search(name);
+	if (!property)
 	{
 		for (unsigned int i = 0; i < name.length(); i++)
 			name[i] = tolower(name[i]);
 
-		propertyNode = new LinkedListNode<Game_ObjectProperty>();
-		propertyNode->value = new Game_ObjectProperty();
-		propertyNode->value->name = name;
-		propertyNode->nextNode = propertyList;
-
-		propertyList = propertyNode;
+		property = new Game_ObjectProperty();
+		property->name = name;
 	}
 
-	propertyNode->value->setValue(value);
+	property->setValue(value);
 }
 
 #endif

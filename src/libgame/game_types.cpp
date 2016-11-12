@@ -27,7 +27,10 @@ Game_ObjectEvent::Game_ObjectEvent(SDL_Event* event)
 Game_KeyTypedEvent::Game_KeyTypedEvent(SDL_Event* event) :
 		Game_ObjectEvent(event)
 {
-
+	this->scancode = event->key.keysym.scancode;
+	this->pressed = event->key.state == SDL_PRESSED;
+	this->keyMod = event->key.keysym.mod;
+	this->repeat = event->key.repeat;
 }
 
 Game_MouseClickedEvent::Game_MouseClickedEvent(SDL_Event* event) :

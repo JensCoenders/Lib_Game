@@ -1,4 +1,6 @@
-#include "game_property.h"
+#include "game_global.h"
+
+using namespace std;
 
 bool gameVar_isRunning = true;
 int gameVar_targetFps = 60;
@@ -6,7 +8,7 @@ bool gameVar_useFpsCounter = true;
 bool gameVar_debugMode = false;
 
 std::string gameVar_assetDir = "assets";
-LinkedListNode<Game_Asset>* gameVar_loadedAssets = NULL;
+LinkedList<Game_Asset, string> gameVar_loadedAssets;
 
 Game_Camera gameVar_mainCamera = {{0, 0}, {0, 0}, NULL, 0, 2};
 bool gameVar_keyboardMovesCamera = true;

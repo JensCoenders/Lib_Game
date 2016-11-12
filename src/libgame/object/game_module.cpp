@@ -1,6 +1,8 @@
+#include <iostream>
+
+#include "../game_global.h"
 #include "game_object.h"
 #include "game_tools.h"
-#include "game_property.h"
 
 using namespace std;
 
@@ -79,57 +81,48 @@ Game_ModuleImageBackground::Game_ModuleImageBackground(Game_Object* parent) :
 
 int Game_ModuleProperty::getIntProperty(string name, int defaultValue)
 {
-	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+	Game_ObjectProperty* currentProperty = propertyList.search(name);
 	if (!currentProperty)
 		return defaultValue;
 
-	return currentProperty->value->getIntValue();
+	return currentProperty->getIntValue();
 }
 
 bool Game_ModuleProperty::getBoolProperty(string name, bool defaultValue)
 {
-	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+	Game_ObjectProperty* currentProperty = propertyList.search(name);
 	if (!currentProperty)
 		return defaultValue;
 
-	return currentProperty->value->getBoolValue();
+	return currentProperty->getBoolValue();
 }
 
 string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
 {
-	LinkedListNode<Game_ObjectProperty>* currentProperty = findPropertyByName(name);
+	Game_ObjectProperty* currentProperty = propertyList.search(name);
 	if (!currentProperty)
 		return defaultValue;
 
-	return currentProperty->value->getStringValue();
+	return currentProperty->getStringValue();
 }
 
-LinkedListNode<Game_ObjectProperty>* Game_ModuleProperty::findPropertyByName(string name)
+bool game_modulePropertySearchFunc(Game_ObjectProperty* currentObject, string name)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name[i]);
 
-	LinkedListNode<Game_ObjectProperty>* currentNode = propertyList;
-	while (currentNode)
-	{
-		if (currentNode->value->name == name)
-			return currentNode;
-
-		currentNode = currentNode->nextNode;
-	}
-
-	return NULL;
+	return currentObject->name == name;
 }
 
 Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 		Game_Module(parent)
 {
-	propertyList = NULL;
+	propertyList.setSearchFunc(game_modulePropertySearchFunc);
 }
 
 Game_ModuleProperty::~Game_ModuleProperty()
 {
-	delete propertyList;
+	propertyList.removeAll();
 }
 
 string Game_ModuleText::getText()

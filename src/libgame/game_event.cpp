@@ -2,7 +2,7 @@
 #include "game_defs.h"
 #include "game_event.h"
 
-#include "game_property.h"
+#include "game_global.h"
 #include "game_tools.h"
 
 using namespace std;
@@ -176,11 +176,6 @@ void game_processKeyboardEvent(SDL_Event& event)
 	if (gameVar_keyboardInputObject && gameVar_keyboardInputObject->isModuleEnabled(MODULE_EVENT))
 	{
 		Game_KeyTypedEvent keyTypedEvent(&event);
-		keyTypedEvent.pressed = event.key.state == SDL_PRESSED;
-		keyTypedEvent.scancode = event.key.keysym.scancode;
-		keyTypedEvent.keyMod = event.key.keysym.mod;
-		keyTypedEvent.repeat = event.key.repeat;
-
 		gameVar_keyboardInputObject->eventModule->callEventFunction(EVENT_TYPE_TYPED, keyTypedEvent);
 	}
 }

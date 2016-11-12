@@ -1,9 +1,7 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-#include <iostream>
 #include <string>
-#include <typeinfo>
 #include <SDL2/SDL.h>
 
 /* General */
@@ -23,19 +21,6 @@ typedef struct Game_Rect
 		std::string toString();
 
 } Game_Rect;
-
-template <typename T>
-struct LinkedListNode
-{
-	public:
-		T* value;
-		LinkedListNode<T>* prevNode;
-		LinkedListNode<T>* nextNode;
-
-		LinkedListNode();
-		~LinkedListNode();
-
-};
 
 /* Events */
 
@@ -60,8 +45,8 @@ typedef struct Game_KeyTypedEvent : public Game_ObjectEvent
 	public:
 		SDL_Scancode scancode;
 		bool pressed;
-		unsigned int keyMod;
-		int repeat;
+		unsigned short keyMod;
+		short repeat;
 
 		Game_KeyTypedEvent(SDL_Event* event);
 
@@ -92,20 +77,6 @@ typedef struct Game_RenderEquipment
 } Game_RenderEquipment;
 
 /* Misc */
-
-typedef enum Game_ObjectFloatMode
-{
-	FLOAT_LEFT_TOP,
-	FLOAT_LEFT_CENTER,
-	FLOAT_LEFT_BOTTOM,
-	FLOAT_CENTER_TOP,
-	FLOAT_CENTER,
-	FLOAT_CENTER_BOTTOM,
-	FLOAT_RIGHT_TOP,
-	FLOAT_RIGHT_CENTER,
-	FLOAT_RIGHT_BOTTOM
-
-} Game_ObjectFloatMode;
 
 typedef struct Game_Asset
 {
@@ -141,20 +112,4 @@ typedef struct Game_ObjectProperty
 
 } Game_ObjectProperty;
 
-/* Function definitions */
-
-template <typename T>
-LinkedListNode<T>::LinkedListNode()
-{
-	value = NULL;
-	prevNode = NULL;
-	nextNode = NULL;
-}
-
-template <typename T>
-LinkedListNode<T>::~LinkedListNode()
-{
-	if (nextNode)
-		delete nextNode;
-}
 #endif
