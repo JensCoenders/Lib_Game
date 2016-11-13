@@ -93,7 +93,7 @@ void game_renderThread()
 		// Update all objects
 		for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 		{
-			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList;
+			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList.nodes;
 			while (currentNode)
 			{
 				Game_Object* currentObject = currentNode->value;
@@ -172,7 +172,7 @@ void game_renderThread()
 		// Draw all objects
 		for (int i = GAME_LAYER_AMOUNT - 1; i >= 0; i--)
 		{
-			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList;
+			LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList.nodes;
 			while (currentNode)
 			{
 				Game_Object* currentObject = currentNode->value;

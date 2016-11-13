@@ -1,7 +1,4 @@
-#ifndef GAME_UTILS_HPP
-#define GAME_UTILS_HPP
-
-#include <string>
+#include <stddef.h>
 
 template <typename T>
 struct LinkedListNode
@@ -16,32 +13,34 @@ struct LinkedListNode
 
 };
 
-template <typename T, typename SearchType>
+template <typename T, typename ST>
 struct LinkedList
 {
 	public:
+		typedef bool (*LinkedList_SearchFunc)(T* currentObject, ST searchTerm);
+
 		LinkedListNode<T>* nodes;
 
 		void add(T* object);
-		void remove(T* object);
+		bool remove(T* object);
 		void removeAll();
 
 		bool hasSearchFunc();
-		void setSearchFunc(bool (*searchFunction)(T* currentObject, SearchType searchTerm));
-		T* search(SearchType searchTerm);
+		void setSearchFunc(LinkedList_SearchFunc searchFunction);
+		T* search(ST searchTerm);
 
 		LinkedList();
 		~LinkedList();
 
 	private:
-		bool (*m_searchFunction)(T* currentObject, SearchType searchTerm);
+		LinkedList_SearchFunc m_searchFunction;
 
 };
 
 /* Linked list functions */
 
-template <typename T, typename SearchType>
-void LinkedList<T, SearchType>::add(T* object)
+template <typename T, typename ST>
+void LinkedList<T, ST>::add(T* object)
 {
 	LinkedListNode<T>* newNode = new LinkedListNode<T>();
 	newNode->nextNode = nodes;
@@ -53,8 +52,8 @@ void LinkedList<T, SearchType>::add(T* object)
 	nodes = newNode;
 }
 
-template <typename T, typename SearchType>
-void LinkedList<T, SearchType>::remove(T* object)
+template <typename T, typename ST>
+bool LinkedList<T, ST>::remove(T* object)
 {
 	LinkedListNode<T>* currentNode = nodes;
 	while (currentNode != NULL)
@@ -72,34 +71,38 @@ void LinkedList<T, SearchType>::remove(T* object)
 			currentNode->nextNode = NULL;
 			currentNode->prevNode = NULL;
 			delete currentNode;
+
+			return true;
 		}
 
 		currentNode = currentNode->nextNode;
 	}
+
+	return false;
 }
 
-template <typename T, typename SearchType>
-void LinkedList<T, SearchType>::removeAll()
+template <typename T, typename ST>
+void LinkedList<T, ST>::removeAll()
 {
 	delete nodes;
 	nodes = NULL;
 }
 
-template <typename T, typename SearchType>
-bool LinkedList<T, SearchType>::hasSearchFunc()
+template <typename T, typename ST>
+bool LinkedList<T, ST>::hasSearchFunc()
 {
 	return m_searchFunction != NULL;
 }
 
-template <typename T, typename SearchType>
-void LinkedList<T, SearchType>::setSearchFunc(bool (*searchFunction)(T* currentObject, SearchType searchTerm))
+template <typename T, typename ST>
+void LinkedList<T, ST>::setSearchFunc(LinkedList_SearchFunc searchFunction)
 {
 	if (searchFunction)
 		m_searchFunction = searchFunction;
 }
 
-template <typename T, typename SearchType>
-T* LinkedList<T, SearchType>::search(SearchType searchTerm)
+template <typename T, typename ST>
+T* LinkedList<T, ST>::search(ST searchTerm)
 {
 	if (m_searchFunction == NULL)
 		return NULL;
@@ -116,15 +119,15 @@ T* LinkedList<T, SearchType>::search(SearchType searchTerm)
 	return NULL;
 }
 
-template <typename T, typename SearchType>
-LinkedList<T, SearchType>::LinkedList()
+template <typename T, typename ST>
+LinkedList<T, ST>::LinkedList()
 {
 	nodes = NULL;
 	m_searchFunction = NULL;
 }
 
-template <typename T, typename SearchType>
-LinkedList<T, SearchType>::~LinkedList()
+template <typename T, typename ST>
+LinkedList<T, ST>::~LinkedList()
 {
 	removeAll();
 }
@@ -143,31 +146,3 @@ LinkedListNode<T>::~LinkedListNode()
 	if (nextNode)
 		delete nextNode;
 }
-
-/* Combiner functions */
-
-template <typename First>
-std::string combineStringPath(First& firstString = "")
-{
-	return firstString;
-}
-
-template <typename First, typename ... Rest>
-std::string combineStringPath(First firstString, Rest&... rest)
-{
-	return std::string(firstString) + "\\" + combineStringPath(rest...);
-}
-
-template <typename First>
-int combineModuleTypes(First firstModule = 0)
-{
-	return firstModule;
-}
-
-template <typename First, typename ... Rest>
-int combineModuleTypes(First firstModule, Rest ... restModules)
-{
-	return (int) firstModule | combineModuleTypes(restModules...);
-}
-
-#endif

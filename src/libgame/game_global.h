@@ -3,10 +3,8 @@
 
 #include <string>
 #include <SDL2/SDL_ttf.h>
-#include "game_defs.h"
 #include "game_object.h"
-#include "game_types.h"
-#include "game_utils.hpp"
+#include "game_utils.h"
 
 extern bool gameVar_isRunning;
 extern int gameVar_targetFps;

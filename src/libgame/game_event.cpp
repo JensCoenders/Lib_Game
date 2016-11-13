@@ -187,7 +187,7 @@ void game_processMouseEvent(SDL_Event& event)
 	int clickedY = event.button.y;
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList;
+		LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList.nodes;
 		while (currentNode)
 		{
 			Game_Object* object = currentNode->value;

@@ -111,36 +111,25 @@ bool game_addGameObject(Game_Object* object, int layerID)
 		return false;
 	}
 
-	Game_RenderLayer* layer = &gameVar_renderLayers[layerID];
-	LinkedListNode<Game_Object>* newNode = new LinkedListNode<Game_Object>();
-	newNode->value = object;
-	newNode->nextNode = layer->objectList;
-
-	layer->objectList = newNode;
-	layer->objectCount++;
+	Game_RenderLayer& layer = gameVar_renderLayers[layerID];
+	layer.objectList.add(object);
+	layer.objectCount++;
 
 	return true;
 }
 
 bool game_removeGameObject(Game_Object* object)
 {
-	Game_RenderLayer* renderLayer = NULL;
-	LinkedListNode<Game_Object>* targetNode = NULL;
-	game_findObjectByID(object->getID(), &renderLayer, &targetNode);
+	bool objectFound = false;
 
-	if (!targetNode || !renderLayer)
-		return false;
+	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
+	{
+		Game_RenderLayer& currentLayer = gameVar_renderLayers[i];
+		if (currentLayer.objectList.remove(object) && !objectFound)
+			objectFound = true;
+	}
 
-	if (targetNode->prevNode)
-		targetNode->prevNode->nextNode = targetNode->nextNode;
-
-	if (targetNode->nextNode)
-		targetNode->nextNode->prevNode = targetNode->prevNode;
-
-	delete targetNode;
-	renderLayer->objectCount--;
-
-	return true;
+	return objectFound;
 }
 
 Game_Point game_getObjectRenderPos(Game_Object& object)
@@ -259,27 +248,13 @@ Game_Rect game_getObjectRenderSize(Game_Object& object)
 	return {objectWidth, objectHeight};
 }
 
-Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer, LinkedListNode<Game_Object>** outputNode)
+Game_Object* game_findObjectByID(unsigned int objectID)
 {
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
-		Game_RenderLayer& currentLayer = gameVar_renderLayers[i];
-		LinkedListNode<Game_Object>* currentNode = currentLayer.objectList;
-		while (currentNode)
-		{
-			if (currentNode->value->getID() == objectID)
-			{
-				if (outputLayer)
-					*outputLayer = &currentLayer;
-
-				if (outputNode)
-					*outputNode = currentNode;
-
-				return currentNode->value;
-			}
-
-			currentNode = currentNode->nextNode;
-		}
+		Game_Object* foundObject = gameVar_renderLayers[i].objectList.search(objectID);
+		if (foundObject)
+			return foundObject;
 	}
 
 	return NULL;

@@ -1,3 +1,4 @@
+#include "game_defs.h"
 #include "game_global.h"
 
 using namespace std;

@@ -161,13 +161,13 @@ Game_Object::~Game_Object()
 	setModuleEnabled(MODULE_ALL, false);
 }
 
+bool game_renderLayerSearchFunc(Game_Object* object, unsigned int objectID)
+{
+	return object->getID() == objectID;
+}
+
 Game_RenderLayer::Game_RenderLayer()
 {
 	objectCount = 0;
-	objectList = NULL;
-}
-
-Game_RenderLayer::~Game_RenderLayer()
-{
-	delete objectList;  	 // Deleting the first object node will destroy the whole linked list
+	objectList.setSearchFunc(game_renderLayerSearchFunc);
 }

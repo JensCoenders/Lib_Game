@@ -4,7 +4,6 @@
 #include <string>
 #include <SDL2/SDL_ttf.h>
 #include "game_global.h"
-
 #include "game_object.h"
 
 /* General */
@@ -23,8 +22,7 @@ bool game_removeGameObject(Game_Object* object);
 Game_Point game_getObjectRenderPos(Game_Object& object);
 Game_Rect game_getObjectRenderSize(Game_Object& object);
 
-Game_Object* game_findObjectByID(unsigned int objectID, Game_RenderLayer** outputLayer = NULL,
-		LinkedListNode<Game_Object>** outputNode = NULL);
+Game_Object* game_findObjectByID(unsigned int objectID);
 
 /* Rendering */
 Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight);

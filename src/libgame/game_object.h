@@ -2,8 +2,8 @@
 #define GAME_OBJECT_H
 
 #include <SDL2/SDL.h>
+#include "../util/game_utils.h"
 #include "game_types.h"
-#include "game_utils.hpp"
 
 /* Function types */
 
@@ -224,12 +224,20 @@ typedef struct Game_RenderLayer
 {
 	public:
 		int objectCount;
-		LinkedListNode<Game_Object>* objectList;
+		LinkedList<Game_Object, unsigned int> objectList;
 
 		Game_RenderLayer();
-		~Game_RenderLayer();
 
 } Game_RenderLayer;
+
+typedef struct Game_RenderScene
+{
+	public:
+		LinkedList<Game_Object, unsigned int> objectList;
+
+		Game_RenderScene();
+
+} Game_RenderScene;
 
 /* Function definitions */
 
