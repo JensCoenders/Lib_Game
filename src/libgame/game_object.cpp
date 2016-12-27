@@ -6,7 +6,7 @@ using namespace std;
 
 bool Game_Object::isModuleEnabled(Game_ModuleType module)
 {
-	return m_enabledModules & module;
+	return ((int) m_enabledModules & (int) module) == module;
 }
 
 void Game_Object::setModuleEnabled(Game_ModuleType module, bool enabled)

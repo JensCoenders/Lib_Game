@@ -262,10 +262,8 @@ Game_Object* game_findObjectByID(unsigned int objectID)
 
 Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHeight)
 {
-	// Create surface
-	SDL_Surface* surface = SDL_CreateRGBSurface(0, surfaceWidth, surfaceHeight, 32, GAME_SURFACE_RMASK,
-	GAME_SURFACE_GMASK,
-	GAME_SURFACE_BMASK, GAME_SURFACE_AMASK);
+	SDL_Surface* surface = SDL_CreateRGBSurface(0, surfaceWidth, surfaceHeight, 32, GAME_SURFACE_RMASK,	GAME_SURFACE_GMASK,
+		GAME_SURFACE_BMASK, GAME_SURFACE_AMASK);
 
 	if (!surface)
 	{
@@ -273,13 +271,17 @@ Game_RenderEquipment* game_createRenderEquipment(int surfaceWidth, int surfaceHe
 		return NULL;
 	}
 
-	// Create equipment
+	SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGBA(surface->format, 0, 255, 255, 255));
+
 	SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);
 	if (!renderer)
 	{
 		cout << "[ERR] Couldn't create SDL_Renderer for render equipment: " << SDL_GetError() << endl;
 		return NULL;
 	}
+
+	SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+	SDL_RenderClear(renderer);
 
 	return new Game_RenderEquipment(renderer, surface);
 }

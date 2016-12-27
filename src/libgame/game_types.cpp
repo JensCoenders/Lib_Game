@@ -19,29 +19,6 @@ string Game_Rect::toString()
 	return stringStream.str();
 }
 
-Game_ObjectEvent::Game_ObjectEvent(SDL_Event* event)
-{
-	this->originalEvent = event;
-}
-
-Game_KeyTypedEvent::Game_KeyTypedEvent(SDL_Event* event) :
-		Game_ObjectEvent(event)
-{
-	this->scancode = event->key.keysym.scancode;
-	this->pressed = event->key.state == SDL_PRESSED;
-	this->keyMod = event->key.keysym.mod;
-	this->repeat = event->key.repeat;
-}
-
-Game_MouseClickedEvent::Game_MouseClickedEvent(SDL_Event* event) :
-		Game_ObjectEvent(event)
-{
-	this->button = event->button.button;
-	this->pressed = (event->button.state == SDL_PRESSED);
-	this->relX = 0;
-	this->relY = 0;
-}
-
 Game_RenderEquipment::Game_RenderEquipment(SDL_Renderer* renderer, SDL_Surface* surface)
 {
 	this->softwareRenderer = renderer;

@@ -17,7 +17,7 @@ std::string combineStringPath(First firstString, Rest&... rest)
 template <typename First>
 int combineModuleTypes(First firstModule = 0)
 {
-	return firstModule;
+	return (int) firstModule;
 }
 
 template <typename First, typename ... Rest>

@@ -24,7 +24,7 @@ G_LIBGAME_OBJS :=
 G_JENSGAME_OBJS :=
 
 # targets
-JENSGAME := $(CONFIG_BINDIR)/Game.exe
+JENSGAME := $(CONFIG_BINDIR)/JensGame.exe
 LIBGAME := $(CONFIG_BINDIR)/libgame.a
 
 # misc variables

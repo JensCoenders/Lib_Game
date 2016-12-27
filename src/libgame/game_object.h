@@ -2,8 +2,9 @@
 #define GAME_OBJECT_H
 
 #include <SDL2/SDL.h>
-#include "../util/game_utils.h"
+#include "game_event.h"
 #include "game_types.h"
+#include "game_utils.h"
 
 /* Function types */
 
@@ -51,9 +52,17 @@ typedef struct Game_ModuleEvent : public Game_Module
 	public:
 		Game_ObjectEventFunc keyTypedFunc;
 		Game_ObjectEventFunc mouseClickedFunc;
+		Game_ObjectEventFunc mouseHoverFunc;
 
+		bool mouseHovering;
+
+		void setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function);
 		bool callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event);
+
 		Game_ModuleEvent(Game_Object* parent);
+
+	private:
+		Game_ObjectEventFunc* getEventFunctionWithType(Game_ObjectEventType type);
 
 } Game_ModuleEvent;
 
@@ -83,7 +92,6 @@ typedef struct Game_ModuleProperty : public Game_Module
 		void setProperty(std::string name, T value);
 
 		Game_ModuleProperty(Game_Object* parent);
-		~Game_ModuleProperty();
 
 } Game_ModuleProperty;
 
@@ -252,6 +260,7 @@ void Game_ModuleProperty::setProperty(std::string name, T value)
 
 		property = new Game_ObjectProperty();
 		property->name = name;
+		propertyList.add(property);
 	}
 
 	property->setValue(value);

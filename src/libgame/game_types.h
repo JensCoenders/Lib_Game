@@ -22,47 +22,6 @@ typedef struct Game_Rect
 
 } Game_Rect;
 
-/* Events */
-
-typedef enum Game_ObjectEventType
-{
-	EVENT_TYPE_TYPED,
-	EVENT_TYPE_CLICKED
-
-} Game_ObjectEventType;
-
-typedef struct Game_ObjectEvent
-{
-	public:
-		SDL_Event* originalEvent;
-
-		Game_ObjectEvent(SDL_Event* event);
-
-} Game_ObjectEvent;
-
-typedef struct Game_KeyTypedEvent : public Game_ObjectEvent
-{
-	public:
-		SDL_Scancode scancode;
-		bool pressed;
-		unsigned short keyMod;
-		short repeat;
-
-		Game_KeyTypedEvent(SDL_Event* event);
-
-} Game_KeyTypedEvent;
-
-typedef struct Game_MouseClickedEvent : public Game_ObjectEvent
-{
-	public:
-		int button;
-		bool pressed;
-		int relX, relY;
-
-		Game_MouseClickedEvent(SDL_Event* event);
-
-} Game_MouseClickedEvent;
-
 /* Rendering */
 
 typedef struct Game_RenderEquipment

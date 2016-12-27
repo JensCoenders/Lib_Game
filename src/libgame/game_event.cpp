@@ -99,7 +99,6 @@ bool processRepeatKeys(SDL_KeyboardEvent& event)
 
 bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 {
-	// Check for movement keys
 	bool keyProcessed = false;
 	switch (event.keysym.scancode)
 	{
@@ -112,11 +111,9 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 		default:
 			break;
 	}
-
 	if (keyProcessed)
 		return true;
 
-	// Check for other keys
 	if (event.state == SDL_PRESSED)
 	{
 		keyProcessed = true;
@@ -162,18 +159,11 @@ bool processNonRepeatKeys(SDL_KeyboardEvent& event)
 
 void game_processKeyboardEvent(SDL_Event& event)
 {
-	// Forward event to correct function
-	if (!event.key.repeat)
-	{
-		if (processNonRepeatKeys(event.key))
-			return;
-	}
-
-	if (processRepeatKeys(event.key))
+	if (!event.key.repeat && processNonRepeatKeys(event.key))
 		return;
-
-	// Forward event to input object
-	if (gameVar_keyboardInputObject && gameVar_keyboardInputObject->isModuleEnabled(MODULE_EVENT))
+	else if (processRepeatKeys(event.key))
+		return;
+	else if (gameVar_keyboardInputObject && gameVar_keyboardInputObject->isModuleEnabled(MODULE_EVENT))
 	{
 		Game_KeyTypedEvent keyTypedEvent(&event);
 		gameVar_keyboardInputObject->eventModule->callEventFunction(EVENT_TYPE_TYPED, keyTypedEvent);
@@ -182,29 +172,64 @@ void game_processKeyboardEvent(SDL_Event& event)
 
 void game_processMouseEvent(SDL_Event& event)
 {
-	// Find object which was clicked
-	int clickedX = event.button.x;
-	int clickedY = event.button.y;
 	for (int i = 0; i < GAME_LAYER_AMOUNT; i++)
 	{
 		LinkedListNode<Game_Object>* currentNode = gameVar_renderLayers[i].objectList.nodes;
 		while (currentNode)
 		{
-			Game_Object* object = currentNode->value;
-			if (object->isModuleEnabled(MODULE_EVENT))
+			Game_Object& currentObject = *currentNode->value;
+			if (!currentObject.isModuleEnabled(MODULE_EVENT))
 			{
-				Game_Point renderPos = game_getObjectRenderPos(*object);
-				Game_Rect renderSize = game_getObjectRenderSize(*object);
-				if (game_isInside(renderPos, renderSize, {clickedX, clickedY}, {0, 0}, true))
-				{
-					// Create Game_MouseClickedEvent
-					Game_MouseClickedEvent mouseClickedEvent(&event);
-					mouseClickedEvent.relX = clickedX - renderPos.x;
-					mouseClickedEvent.relY = clickedY - renderPos.y;
+				currentNode = currentNode->nextNode;
+				continue;
+			}
 
-					object->eventModule->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
-					return;
+			Game_Point renderPos = game_getObjectRenderPos(currentObject);
+			Game_Rect renderSize = game_getObjectRenderSize(currentObject);
+			switch (event.type)
+			{
+				case SDL_MOUSEBUTTONUP:
+				case SDL_MOUSEBUTTONDOWN:
+				{
+					int clickedX = event.button.x;
+					int clickedY = event.button.y;
+					if (game_isInside(renderPos, renderSize, {clickedX, clickedY}, {0, 0}, true))
+					{
+						Game_MouseClickedEvent mouseClickedEvent(&event);
+						mouseClickedEvent.relativeX = clickedX - renderPos.x;
+						mouseClickedEvent.relativeY = clickedY - renderPos.y;
+
+						currentObject.eventModule->callEventFunction(EVENT_TYPE_CLICKED, mouseClickedEvent);
+					}
+					break;
 				}
+				case SDL_MOUSEMOTION:
+				{
+					int currentX = event.motion.x;
+					int currentY = event.motion.y;
+					Game_MouseHoveredEvent mouseMotionEvent(&event);
+					if (game_isInside(renderPos, renderSize, {currentX, currentY}, {0, 0}, true))
+					{
+						if (!currentObject.eventModule->mouseHovering)
+						{
+							mouseMotionEvent.entering = true;
+							currentObject.eventModule->mouseHovering = true;
+							currentObject.eventModule->callEventFunction(EVENT_TYPE_MOTION, mouseMotionEvent);
+						}
+					}
+					else
+					{
+						if (currentObject.eventModule->mouseHovering)
+						{
+							mouseMotionEvent.entering = false;
+							currentObject.eventModule->mouseHovering = false;
+							currentObject.eventModule->callEventFunction(EVENT_TYPE_MOTION, mouseMotionEvent);
+						}
+					}
+					break;
+				}
+				default:
+					break;
 			}
 
 			currentNode = currentNode->nextNode;
@@ -229,4 +254,37 @@ void game_processWindowEvent(SDL_Event& event)
 			gameVar_isRunning = false;
 			break;
 	}
+}
+
+Game_ObjectEvent::Game_ObjectEvent(SDL_Event* event)
+{
+	this->originalEvent = event;
+}
+
+Game_KeyTypedEvent::Game_KeyTypedEvent(SDL_Event* event) :
+		Game_ObjectEvent(event)
+{
+	this->scancode = event->key.keysym.scancode;
+	this->pressed = event->key.state == SDL_PRESSED;
+	this->keyMod = event->key.keysym.mod;
+	this->repeat = event->key.repeat;
+}
+
+Game_MouseClickedEvent::Game_MouseClickedEvent(SDL_Event* event) :
+		Game_ObjectEvent(event)
+{
+	this->button = event->button.button;
+	this->pressed = (event->button.state == SDL_PRESSED);
+	this->relativeX = 0;
+	this->relativeY = 0;
+}
+
+Game_MouseHoveredEvent::Game_MouseHoveredEvent(SDL_Event* event) :
+		Game_ObjectEvent(event)
+{
+	this->entering = false;
+	this->newX = event->motion.x;
+	this->newY = event->motion.y;
+	this->movedX = 0;
+	this->movedY = 0;
 }

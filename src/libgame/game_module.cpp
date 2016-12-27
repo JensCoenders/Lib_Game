@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../game_global.h"
+#include "game_global.h"
 #include "game_object.h"
 #include "game_tools.h"
 
@@ -31,28 +31,36 @@ Game_ModuleColorBackground::Game_ModuleColorBackground(Game_Object* parent) :
 	backgroundColor.a = 0;
 }
 
+void Game_ModuleEvent::setEventFunction(Game_ObjectEventType type, Game_ObjectEventFunc function)
+{
+	Game_ObjectEventFunc* targetFunction = getEventFunctionWithType(type);
+	if (targetFunction)
+		*targetFunction = function;
+}
+
 bool Game_ModuleEvent::callEventFunction(Game_ObjectEventType type, Game_ObjectEvent& event)
+{
+	Game_ObjectEventFunc targetFunction = *getEventFunctionWithType(type);
+	if (!targetFunction)
+		return false;
+
+	targetFunction(*getParent(), event);
+	return true;
+}
+
+Game_ObjectEventFunc* Game_ModuleEvent::getEventFunctionWithType(Game_ObjectEventType type)
 {
 	switch (type)
 	{
 		case EVENT_TYPE_TYPED:
-			if (keyTypedFunc)
-				keyTypedFunc(*getParent(), event);
-			else
-				return false;
-
-			break;
+			return &keyTypedFunc;
 		case EVENT_TYPE_CLICKED:
-			if (mouseClickedFunc)
-				mouseClickedFunc(*getParent(), event);
-			else
-				return false;
-
-			break;
+			return &mouseClickedFunc;
+		case EVENT_TYPE_MOTION:
+			return &mouseHoverFunc;
 		default:
-			return false;
+			return NULL;
 	}
-	return true;
 }
 
 Game_ModuleEvent::Game_ModuleEvent(Game_Object* parent) :
@@ -60,6 +68,9 @@ Game_ModuleEvent::Game_ModuleEvent(Game_Object* parent) :
 {
 	keyTypedFunc = NULL;
 	mouseClickedFunc = NULL;
+	mouseHoverFunc = NULL;
+
+	mouseHovering = false;
 }
 
 string Game_ModuleImageBackground::getTexturePath()
@@ -106,23 +117,18 @@ string Game_ModuleProperty::getStringProperty(string name, string defaultValue)
 	return currentProperty->getStringValue();
 }
 
-bool game_modulePropertySearchFunc(Game_ObjectProperty* currentObject, string name)
+bool game_modulePropertySearchFunc(Game_ObjectProperty* currentProperty, string name)
 {
 	for (unsigned int i = 0; i < name.length(); i++)
 		name[i] = tolower(name[i]);
 
-	return currentObject->name == name;
+	return currentProperty->name == name;
 }
 
 Game_ModuleProperty::Game_ModuleProperty(Game_Object* parent) :
 		Game_Module(parent)
 {
 	propertyList.setSearchFunc(game_modulePropertySearchFunc);
-}
-
-Game_ModuleProperty::~Game_ModuleProperty()
-{
-	propertyList.removeAll();
 }
 
 string Game_ModuleText::getText()

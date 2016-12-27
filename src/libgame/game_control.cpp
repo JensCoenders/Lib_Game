@@ -38,6 +38,7 @@ void game_runMainLoop()
 					break;
 				case SDL_MOUSEBUTTONUP:
 				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEMOTION:
 					game_processMouseEvent(event);
 					break;
 				case SDL_WINDOWEVENT:
